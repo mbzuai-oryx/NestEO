@@ -1,5 +1,12 @@
-# Modified Code to work on RAW 1922 tif files from Google Earth Engine
+# scripts/compute_landcover_proportions.py
+
 import os
+from os.path import exists, join, basename, dirname, isfile, isdir
+import yaml
+from pathlib import Path
+from time import time
+# from henarcmeo.metadata.esa_lc_props_core import process_grid_zone_batch
+
 os.environ["OMP_NUM_THREADS"] = '2'
 
 import glob
@@ -92,7 +99,7 @@ def process_partition(partition_gdf, raster_path, dst_crs, resolution, zone_name
     resampling = Resampling.nearest if resolution <= 10 else Resampling.mode
 
     # === CASE 1: Mosaic TIF ===
-    if os.path.isfile(raster_path) and raster_outline_gdf is None:
+    if isfile(raster_path) and raster_outline_gdf is None:
         with rasterio.open(raster_path) as src:
             vrt_options = {
                 "crs": dst_crs,
@@ -132,10 +139,10 @@ def process_partition(partition_gdf, raster_path, dst_crs, resolution, zone_name
                     proportions.append((tile_id, prop_dict))
 
     # === CASE 2: Multiple Raster Tiles ===
-    elif os.path.isdir(raster_path) and raster_outline_gdf is not None:
+    elif isdir(raster_path) and raster_outline_gdf is not None:
         selected = raster_outline_gdf.cx[src_bounds[0]:src_bounds[2], src_bounds[1]:src_bounds[3]]
         raster_names = selected["raster_fil"].unique().tolist()
-        raster_paths = [os.path.join(raster_path, f) for f in raster_names if os.path.exists(os.path.join(raster_path, f))]
+        raster_paths = [join(raster_path, f) for f in raster_names if exists(join(raster_path, f))]
 
         if not raster_paths:
             raise RuntimeError(f"No input rasters found for bounds: {src_bounds}")
@@ -231,3 +238,167 @@ def run_zone(zone_name, gdf, raster_path, resolution=10, partition_size=1000,
     # result_df["zone"] = zone_name
     return result_df
 
+
+
+
+
+
+
+
+
+def load_config(config_path):
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f)
+
+
+def main(config_file="configs/esa_lc_props_config.yaml"):
+    config_path = Path(config_file)
+    config = load_config(config_path)
+    grid_sizes = config.get("grid_sizes", [120000, 12000, 6000, 1200, 600, 300])
+    resolutions = config.get("resolutions", [10])
+    zones = config.get("zones", None)  # or leave empty for all
+    if zones is None or len(zones) == 0:
+        # Generate zones if not provided or empty
+        zones = [f"{i}{d}" for i in range(1, 61) for d in ["N", "S"]]
+    default_levels = config.get("default_levels", [300, 600, 1200, 6000, 12000, 120000])
+
+    n_workers = config.get("n_workers", 8)  # Number of workers for parallel processing
+    # Memory limit for each worker (in GB)
+    memory_limit = config.get("memory_limit", 8)  # in GB
+    process_mosaic = config.get("process_mosaic", False)
+    final_proportions = config.get("final_proportions", False)  # If True, will compute final proportions
+    excluded_zones = config.get("excluded_zones", [])
+    zones = [z for z in zones if z not in excluded_zones]
+    raster_outline_path = config.get("raster_outline_path", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp")
+    raster_dir = config.get("raster_dir", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs")
+    output_dir = config.get("output_dir", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions")
+    grids_dir = config.get("grids_dir", "D:/henarcmeo_hf/grids")
+
+
+    for grid_size in grid_sizes:
+        for resolution in resolutions:
+            for zone in zones:
+                print(f"\n=== Starting for grid_size: {grid_size}, resolution: {resolution} ===")
+                grid_dir = f"{grids_dir}/grid_{grid_size}m"
+                i = default_levels.index(grid_size)
+                if (i+1) < len(default_levels):
+                    super_grid_size = default_levels[i + 1]
+                    super_dir = f"{grids_dir}/grid_{super_grid_size}m"
+                else:
+                    super_grid_size=None
+                print("super_grid_size: ", super_grid_size)
+
+                st = time()
+                out_file = join(f"{grid_dir}/lc_proportions_{resolution}m_{zone}_{grid_size}m.parquet")
+                print("Output file: ", out_file)
+
+                if exists(out_file):
+                    print("\nSkipping, file exists: ", out_file)
+                    continue
+
+                if process_mosaic:
+                    raster_path = join(raster_dir, f"ESA_LC_UTM_zone_{zone}_grid.tif")
+                    raster_outline_gdf = None
+                else:
+                    raster_path = raster_dir
+                    raster_outline_gdf = gpd.read_file(raster_outline_path)
+                    print("\nTotal tiles: ", len(raster_outline_gdf))
+
+                if not exists(raster_path):
+                    print("\nNOT FOUND: ", raster_path)
+                    continue
+                print("\nProcessing zone:", zone)
+                # Check if the grid file exists
+                parquet_file = join(grid_dir, f"grid_{zone}_{grid_size}.parquet")
+                if exists(parquet_file):
+                    gdf = gpd.read_parquet(parquet_file)[["tile_id", "super_id", "geometry"]].copy()
+                else:
+                    raise ValueError(f"{parquet_file} grid file not found..")
+                
+                # Make use of the heirarchy and nesting    
+                if super_grid_size:
+                    super_result_file = join(super_dir, f"lc_proportions_{resolution}m_{zone}_{super_grid_size}m.parquet")
+                    # print(super_result_file)
+                    if not exists(super_result_file):
+                        raise ValueError(f"Missing super-level results: {super_result_file}")
+                    super_df = pd.read_parquet(super_result_file)
+                    super_zero_tiles = set(
+                        super_df.loc[super_df["landcover_props"] == "{0: 1.0}", "tile_id"]
+                    )
+                else:
+                    super_zero_tiles = set()
+
+                if super_zero_tiles:
+                    zero_gdf = gdf[gdf["super_id"].isin(super_zero_tiles)].copy()
+                    non_zero_gdf = gdf[~gdf["super_id"].isin(super_zero_tiles)].copy()
+                else:
+                    zero_gdf = gdf.iloc[0:0]  # Empty
+                    non_zero_gdf = gdf.copy()
+                if zone in ["1N", "1S", "60N", "60S"]:
+                    # Area-based filtering useful for border zones
+                    max_area = 2 * grid_size * grid_size  # Dynamic threshold based on grid resolution (in meters)
+                    non_zero_gdf["area"] = non_zero_gdf.geometry.area
+                    oversized_gdf = non_zero_gdf[non_zero_gdf["area"] > max_area].copy()
+                    non_zero_gdf = non_zero_gdf[non_zero_gdf["area"] <= max_area].copy()
+
+                    # Assign placeholder landcover proportions to oversized polygons
+                    oversized_gdf["landcover_props"] = ["{-1: 1.0}"] * len(oversized_gdf)
+                    oversized_df = oversized_gdf[["tile_id", "landcover_props"]]
+                else:
+                    oversized_df = pd.DataFrame(columns=["tile_id", "landcover_props"])
+                total_cells = len(gdf)
+                non_zero_cells = len(non_zero_gdf)
+                print(f"The zero records: {len(zero_gdf)}, The non-zero records: {non_zero_cells}")
+                print(f"Percent processing: {non_zero_cells/total_cells*100}%")
+
+                del super_zero_tiles, super_df  # Clean up memory
+                gc.collect()
+
+                
+                large_factor = round((1/np.sqrt(grid_size)*100)+1, 0)
+                # large_factor = round((np.sqrt(non_zero_cells)/100) + 1, 0)
+                # if non_zero_cells > 50000 and non_zero_cells < 100000:
+                #     large_factor = 2
+                # elif non_zero_cells > 100000 and non_zero_cells < 200000:
+                #     large_factor = 3
+                # elif non_zero_cells > 200000:
+                #     large_factor = 4
+                print("partition large_factor based on grid_size: ", large_factor)
+                ##################################################################################################
+
+                partition_factor = n_workers*2*large_factor
+                partition_size = int(non_zero_cells//partition_factor)+1
+                memory_limit = f"{memory_limit}GB"
+                print("partition_size: ", partition_size, "memory_limit: ", memory_limit)
+                df = run_zone(zone, non_zero_gdf, raster_path, resolution=resolution, partition_size=partition_size, 
+                        max_pixels=1e12, raster_outline_gdf=raster_outline_gdf, n_workers=n_workers, memory_limit=memory_limit)
+                df = df[["tile_id", "landcover_props"]].copy()
+                
+                #################################################################################################
+                zero_gdf["landcover_props"] = ["{0: 1.0}"] * len(zero_gdf)
+                zero_df = zero_gdf[["tile_id", "landcover_props"]]  # keep only required columns
+
+                # Final full DataFrame
+                df = pd.concat([df, zero_df, oversized_df], ignore_index=True)
+                df["landcover_props"] = df["landcover_props"].astype(str)
+                df.to_parquet(out_file, index=False, compression='snappy')
+                # df.to_csv(out_file, index=False)
+
+                # assert len(df["tile_id"].unique()) == len(gdf["tile_id"].unique()), "Mismatch in tile counts!"
+                print(f"Processed zone: {zone} in {(time()-st)/60} mins at {strftime('%H:%M:%S', localtime())}")
+
+                del df  # or any large objects
+                gc.collect()
+
+            if final_proportions:
+                prop_files = glob.glob(f"{grid_dir}/lc_proportions_{resolution}m_*_{grid_size}m.parquet")
+                print("Total files: ", len(prop_files))
+                df_all = [pd.read_parquet(df) for df in prop_files]
+                df_all = pd.concat(df_all, ignore_index=True)
+                df_all.to_parquet(join(grid_dir, f"lc_proportions_{resolution}m_allzones_{grid_size}m.parquet"), index=False)
+
+
+if __name__ == "__main__":
+    import sys, os
+    config_arg = sys.argv[1] if len(sys.argv) > 1 else "configs/esa_lc_props_config.yaml"
+    main()

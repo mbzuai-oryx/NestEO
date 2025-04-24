@@ -1,6 +1,9 @@
 # Links and files to download from ESA Worldcover site
 out_path: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
 base_link: "https://zenodo.org/records/7254221/files/"
+download: false
+extract: false
+outlines: true
 # The following files are the macrotile files that contain the 10m resolution land cover data
 # The macrotile files are large and contain multiple tiles, so they are downloaded separately
 # The macrotile files are in zip format and need to be unzipped after downloading

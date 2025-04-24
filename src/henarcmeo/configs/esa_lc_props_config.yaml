@@ -1,0 +1,18 @@
+grid_sizes: [120000, 12000, 6000, 1200, 600, 300]
+resolutions: [10]
+
+zones: None  # or leave empty for all
+excluded_zones: []
+default_levels: [300, 600, 1200, 6000, 12000, 120000]
+
+
+n_workers: 8
+memory_limit: 4  # in GB
+process_mosaic: false
+final_proportions: true
+
+# Paths
+raster_dir: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
+raster_outline_path: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp"
+grids_dir: "D:/henarcmeo_hf/grids"
+output_dir: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
