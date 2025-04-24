@@ -3,18 +3,28 @@ import pandas as pd
 import pyarrow.parquet as pq
 from pathlib import Path
 from huggingface_hub import hf_hub_download, upload_file
+import json
+from datetime import datetime
 
-
-class HenarcmeoStructure:
+class HenarcmeoStructure():
     def __init__(self, root_folder=None, hf_repo_id=None, structure_file="structure.parquet"):
         self.root_folder = Path(root_folder) if root_folder else None
         self.hf_repo_id = hf_repo_id
         self.structure_file = structure_file
-        self.structure_df = None
 
-    def create_structure_from_local(self):
+        self.structure_path = "index_structure"
+        if Path(self.root_folder / self.structure_path / self.structure_file).exists():
+            self.structure_df = pd.read_parquet(self.root_folder / self.structure_path / self.structure_file)
+            print("read structure from local")
+        else:
+            self.structure_df = None
+
+    def create_structure_from_local(self, local_path=None, out_format="parquet"):
         if not self.root_folder:
-            raise ValueError("root_folder must be provided for local operations.")
+            if local_path:
+                self.root_folder = Path(local_path)
+            else:
+                raise ValueError("root_folder must be provided for local operations.")
 
         entries = []
         for folder, subdirs, files in os.walk(self.root_folder):
@@ -41,9 +51,15 @@ class HenarcmeoStructure:
                         row_count = pqf.metadata.num_rows
                         metadata = {k: pqf.metadata.metadata[k].decode("utf-8")
                                     for k in pqf.metadata.metadata or {}}
+                        # metadata = {k.decode("utf-8"): v.decode("utf-8") for k, v in pqf.metadata.metadata.items()
+                        #             } if pqf.metadata.metadata else {}
+
                     elif file_ext == ".csv":
                         row_count = sum(1 for _ in open(full_path)) - 1
                 except Exception as e:
+                    # Handle errors in metadata extraction gracefully
+                    row_count = None
+                    metadata = None
                     print(f"Warning: Could not extract metadata from {full_path}: {e}")
 
                 entries.append({
@@ -56,7 +72,16 @@ class HenarcmeoStructure:
                 })
 
         self.structure_df = pd.DataFrame(entries)
-        self.structure_df.to_parquet(self.root_folder / self.structure_file, index=False)
+        (self.root_folder / self.structure_path).mkdir(parents=True, exist_ok=True)
+
+        if out_format == "parquet":
+            self.structure_df.to_parquet(self.root_folder / self.structure_path / self.structure_file, index=False)
+            print("parquet saved")
+        elif out_format == "csv":
+            self.structure_df.to_csv(self.root_folder /  self.structure_path / self.structure_file, index=False)
+            print("csv saved")
+        else:
+            raise ValueError("Unsupported output format. Use 'parquet' or 'csv'.")
         return self.structure_df
 
     def load_structure_from_hf(self):
@@ -83,7 +108,7 @@ class HenarcmeoStructure:
     def upload_structure_to_hf(self):
         if not self.hf_repo_id or not self.root_folder:
             raise ValueError("Both hf_repo_id and root_folder must be set for upload.")
-        file_path = self.root_folder / self.structure_file
+        file_path = self.root_folder / self.structure_path / self.structure_file
         if not file_path.exists():
             raise FileNotFoundError(f"{self.structure_file} not found in {self.root_folder}")
         upload_file(
@@ -91,6 +116,36 @@ class HenarcmeoStructure:
             path_or_fileobj=file_path,
             path_in_repo=self.structure_file
         )
+
+
+    def snapshot_structure_version(self, version_name="v1.0", notes=None, include_metadata_summary=True):
+        if self.structure_df is None:
+            raise ValueError("Structure must be created or loaded before snapshotting.")
+        if self.root_folder is None:
+            raise ValueError("root_folder must be set before snapshotting.")
+
+        version_dir = self.root_folder / "versions" / version_name
+        version_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy structure.parquet to versioned folder
+        structure_snapshot_path = version_dir / f"structure_{version_name}.parquet"
+        self.structure_df.to_parquet(structure_snapshot_path, index=False)
+
+        # Optional: save metadata summary as JSON
+        if include_metadata_summary:
+            summary = {
+                "version_name": version_name,
+                "created_at": datetime.utcnow().isoformat() + "Z",
+                "total_files": int((~self.structure_df['is_folder']).sum()),
+                "total_folders": int((self.structure_df['is_folder']).sum()),
+                "total_size_MB": round(self.structure_df['file_size'].dropna().sum() / 1e6, 2),
+                "notes": notes or "No additional notes provided.",
+            }
+            with open(version_dir / f"version_metadata_{version_name}.json", "w") as f:
+                json.dump(summary, f, indent=2)
+
+        print(f" Structure snapshot created under: {version_dir}")
+        return structure_snapshot_path
 
     # --- Future methods (skeleton only for now) ---
     def compare_current_with_structure(self):

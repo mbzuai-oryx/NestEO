@@ -37,7 +37,7 @@ class Henarcmeo:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Instantiate subsystems
-        self.structure = HENARCmeoStructure(
+        self.structure = HenarcmeoStructure(
             root_folder=self.root_folder,
             hf_repo_id=self.hf_repo_id,
             structure_file=self.structure_file
@@ -50,6 +50,10 @@ class Henarcmeo:
         self.aligner = None
         self.annotator = None
 
+    @property
+    def structure_df(self):
+        return self.structure.structure_df
+    
     def load_all(self):
         """
         Optionally preload structure and metadata.
