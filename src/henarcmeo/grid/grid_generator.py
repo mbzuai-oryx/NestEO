@@ -190,6 +190,8 @@ class HenarcmeoGrid:
 
             print(f"\n ### Level {level} generation complete. ###\n")
             self.export_global_tile_index(f"grid_index_{level}m.parquet")
+            # path = join(self.output_dir, "merged_grids", f"grid_index_{level}m.parquet")
+            # merge_existing_grid_files()
             print(f"\n ### Level {level} tile index exported. ###\n")    
             #     
         self.executor.shutdown(wait=True)
@@ -1472,6 +1474,33 @@ class HenarcmeoGrid:
         tile_files = glob(join(folder, ext))
         # print(ext, tile_files)
         self.generated_file_paths.extend(tile_files)
+        return tile_files
+
+    @staticmethod
+    def merge_existing_grid_files(folder, output_format: str = "parquet"):
+        """
+        Scan the output folder and register all existing grid files for later processing.
+        """
+        ext = f"*.{output_format.lower()}"
+        # extensions = ["*.gpkg", "*.shp", "*.geojson", "*.parquet"]
+        from glob import glob
+        # for ext in extensions:
+        tile_files = glob(join(folder, ext))
+        # print(ext, tile_files)
+        dfs = [gpd.read_parquet(f) for f in tile_files if f.endswith(".parquet")]
+        dfs = [
+            gpd.read_file(f) for f in tile_files if f.endswith(".gpkg") or f.endswith(".geojson") or f.endswith(".shp")
+        ] + dfs
+        dfs = [
+            df.to_crs("EPSG:4326") for df in dfs if not df.empty and "geometry" in df.columns
+        ]
+        if dfs:
+            merged = pd.concat(dfs, ignore_index=True)
+            out_dir = Path(folder).parent / "merged_grids"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            level = merged["level"].iloc[0] if "level" in merged.columns else "Unknown"
+            print(f"[INFO] Merged grid level: {level}")
+            merged.to_parquet(out_dir / f"merged_grid_{level}m.{output_format}", index=False)
         return tile_files
 
 
