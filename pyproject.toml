@@ -12,7 +12,7 @@ dependencies = [
 
 [project.optional-dependencies]
 geo = ["geopandas", "shapely", "pyproj", "rasterio"]
-hf  = ["huggingface-hub", "dask[dataframe]"]
+hf  = ["huggingface-hub", "dask", "dask[dataframe]"]
 
 [build-system]
 requires = ["hatchling"]
