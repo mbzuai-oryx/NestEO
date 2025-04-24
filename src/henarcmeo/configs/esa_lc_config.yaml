@@ -1,0 +1,25 @@
+# Links and files to download from ESA Worldcover site
+out_path: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
+base_link: "https://zenodo.org/records/7254221/files/"
+# The following files are the macrotile files that contain the 10m resolution land cover data
+# The macrotile files are large and contain multiple tiles, so they are downloaded separately
+# The macrotile files are in zip format and need to be unzipped after downloading
+# tile_filenames: ["ESA_WorldCover_10m_2021_v200_60deg_macrotile_N30E000.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_N30E060.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_N30E120.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_N30W060.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_N30W120.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_N30W180.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S30E000.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S30E060.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S30E120.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S30W060.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S30W120.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S30W180.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S90E000.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S90E060.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S90W060.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S90W120.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S90W180.zip",
+#     "ESA_WorldCover_10m_2021_v200_60deg_macrotile_S90E120.zip"]
+
