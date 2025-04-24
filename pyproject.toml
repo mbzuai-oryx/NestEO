@@ -1,0 +1,19 @@
+[project]
+name = "henarcmeo"
+version = "0.0.1"
+description = "Hierarchical Extensible Nested Aligned Representative Contextual Multimodal EO framework"
+readme = "README.md"
+authors = [{name = "Your Name"}]
+requires-python = ">=3.9"
+dependencies = [
+    "pandas>=2.0",
+    "pyarrow>=14.0",
+]
+
+[project.optional-dependencies]
+geo = ["geopandas", "shapely", "pyproj", "rasterio"]
+hf  = ["huggingface-hub", "dask[dataframe]"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
