@@ -1,7 +1,7 @@
 # Grid generation configuration for HenarcmeoGrid
 
 # Define all resolution levels in meters
-# levels: [120000, 12000, 6000, 1200, 600, 300]
+levels: [120000, 12000, 6000, 1200, 600, 300]
 default_levels: [300, 600, 1200, 6000, 12000, 120000]
 
 # Leave utm_zones undefined to process ALL zones (1N–60N, 1S–60S)
@@ -15,8 +15,8 @@ output_dir: "D:/henarcmeo_hf/metadata_current/grids"  # Where to write output
 save_geohash: true                          # Save GeoHash column
 include_polar: true                        # If True, generates polar grids
 skip_existing: true                         # Skip grid generation if output already exists
-save_wgs_files: true                        # Export WGS84 versions alongside UTM
-save_single_file: true                      # Save full grid as one .parquet per level
+save_wgs_files: false                        # Export WGS84 versions alongside UTM
+save_single_file: false                      # Save full grid as one .parquet per level
 generate: true                              # Flag to trigger actual generation (safe for dry-run toggle)
 
 # Optional advanced

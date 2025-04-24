@@ -16,6 +16,7 @@ import pandas as pd
 from shapely.geometry import box
 import numpy as np
 import os, gc
+from os.path import join, exists, basename, dirname, splitext
 import psutil
 from pyproj import CRS, Transformer
 from typing import List, Tuple, Optional, Union, Dict
@@ -130,10 +131,10 @@ class HenarcmeoGrid:
                 print(f"Generating UTM zones: {zones_to_generate}")
                 for zone in zones_to_generate:
                     # fname = f"{self.file_name_prefix}grid_{zone}_{level}.{self.output_format.lower()}"
-                    # path = os.path.join(self.output_dir, fname)
+                    # path = join(self.output_dir, fname)
                     path = self._construct_tile_file_path(zone, level)
 
-                    if self.skip_existing and os.path.exists(path): # self._file_exists_for_tile(zone, level):
+                    if self.skip_existing and exists(path): # self._file_exists_for_tile(zone, level):
                         print(f"[SKIP] {zone} level {level} already exists.")
                         self.generated_file_paths.append(path)
                         continue
@@ -146,9 +147,10 @@ class HenarcmeoGrid:
                         if not self.save_single_file:
                             print(f"Saving {zone} to {self.output_format}...")
                             self._save_output([gdf], level)
+                            # self.generated_file_paths.append(path)
                         else:
                             level_gdfs.append(gdf)
-                        self.generated_file_paths.append(path)
+                        
                     end = time()
                     print(f"Zone {zone} generation time: {end - start:.2f} seconds")
 
@@ -156,9 +158,9 @@ class HenarcmeoGrid:
             if self.include_polar:
                 for pole in ["NP", "SP"]:
                     path = self._construct_tile_file_path(zone, level)
-                    if self.skip_existing and os.path.exists(path): #self._file_exists_for_tile(pole, level):  
+                    if self.skip_existing and exists(path): #self._file_exists_for_tile(pole, level):  
                         print(f"[SKIP] {zone} level {level} already exists.")
-                        self.generated_file_paths.append(path)
+                        # self.generated_file_paths.append(path)
                         continue
 
                     gdf = self._generate_polar_grid(level, pole)
@@ -168,14 +170,16 @@ class HenarcmeoGrid:
                         if not self.save_single_file:
                             print(f"Saving {pole} to {self.output_format}...")
                             self._save_output([gdf], level)
+                            # self.generated_file_paths.append(path)
                         else:
                             level_gdfs.append(gdf)
-                        self.generated_file_paths.append(path)
+                        
 
             # Save outputs for this level
             if level_gdfs:
                 self._save_output(level_gdfs, level)
-                # self.generated_file_paths.append(path)
+                path = self._construct_tile_file_path("all_zones", level)
+                self.generated_file_paths.append(path)
                 del level_gdfs, gdf  # Free up memory
                 gc.collect()
 
@@ -185,7 +189,7 @@ class HenarcmeoGrid:
                 self.write_futures.clear()
 
             print(f"\n ### Level {level} generation complete. ###\n")
-            self.export_global_tile_index(f"grid_index_{level}m.parquet"))
+            self.export_global_tile_index(f"grid_index_{level}m.parquet")
             print(f"\n ### Level {level} tile index exported. ###\n")    
             #     
         self.executor.shutdown(wait=True)
@@ -350,7 +354,7 @@ class HenarcmeoGrid:
             # print("\n\n Zone 60 and 1", len(gdf))
             gdf_wgs84 = gdf.to_crs("EPSG:4326")
 
-            def is_globally_wrapping(geom, threshold=30.0):
+            def is_globally_wrapping(geom, threshold=12.0):
                 minx, miny, maxx, maxy = geom.bounds
                 return (maxx - minx < 0) or (maxx - minx > threshold)
 
@@ -472,7 +476,7 @@ class HenarcmeoGrid:
 
         import glob, pandas as pd, re
 
-        patt = os.path.join(self.ref_dir,
+        patt = join(self.ref_dir,
                             f"lc_proportions_*_{zone}_{self.ref_level}m.parquet")
         path  = glob.glob(patt)[0]                     # let it raise if not found
         df    = pd.read_parquet(path, columns=["tile_id", "landcover_props"])
@@ -492,7 +496,7 @@ class HenarcmeoGrid:
         return tuples
 
 
-        # pat = os.path.join(
+        # pat = join(
         #     self.ref_dir,
         #     f"lc_proportions_*_{zone}_{self.ref_level}m.parquet")
         # files = glob.glob(pat)
@@ -569,6 +573,7 @@ class HenarcmeoGrid:
 
         # Half‑tile width in degrees, adjusted for latitude
         # 111 320 m ≈ 1 degree of longitude at the equator
+        # Here we are trying to get the overlap in tiles
         lat_rad = np.deg2rad(np.clip(np.abs(lats), 0, 80))       # avoid cos 90
         factors = {120000: 2.5, 12000: 5, 6000: 6, 1200:8, 600: 10, 300: 20}
         fact = factors[grid_size]
@@ -721,7 +726,7 @@ class HenarcmeoGrid:
         suffix = "_" + "_".join(suffix_parts) if suffix_parts else ""
         
         fname = f"{self.file_name_prefix}grid_{zone}_{level}{suffix}.{file_ext}"
-        return os.path.join(self.output_dir, fname)
+        return join(self.output_dir, fname)
 
 
     def check_satellite_resolution_compatibility(self, grid_sizes: List[int], satellite_resolutions: List[int]) -> pd.DataFrame:
@@ -876,7 +881,7 @@ class HenarcmeoGrid:
         :param include_geometry: If True, includes the original geometry column
         :param output_name: Optional file name prefix or full path for single_file mode
         """
-        base_dir = base_dir or os.path.join(self.output_dir, "grid_parquets")
+        base_dir = base_dir or join(self.output_dir, "grid_parquets")
         os.makedirs(base_dir, exist_ok=True)
 
         def enrich(df: gpd.GeoDataFrame) -> pd.DataFrame:
@@ -895,7 +900,7 @@ class HenarcmeoGrid:
             combined = pd.concat([enrich(df) for df in all_gdfs], ignore_index=True)
             combined["crs"] = "EPSG:" + str(crs_values.pop()) if len(crs_values) == 1 else "MIXED"
 
-            out_path = output_name or os.path.join(base_dir, f"{self.file_name_prefix}grid_all_levels.parquet")
+            out_path = output_name or join(base_dir, f"{self.file_name_prefix}grid_all_levels.parquet")
             combined.to_parquet(out_path, index=False)
 
         elif mode == "per_level":
@@ -906,7 +911,7 @@ class HenarcmeoGrid:
 
             for lvl, dfs in df_by_level.items():
                 df_lvl = pd.concat([enrich(d) for d in dfs], ignore_index=True)
-                out_path = os.path.join(base_dir, f"{self.file_name_prefix}grid_L{lvl}.parquet")
+                out_path = join(base_dir, f"{self.file_name_prefix}grid_L{lvl}.parquet")
                 df_lvl.to_parquet(out_path, index=False)
 
         elif mode == "partitioned":
@@ -914,9 +919,9 @@ class HenarcmeoGrid:
                 df_enriched = enrich(df)
                 level = df["level"].iloc[0]
                 zone = df["zone"].iloc[0]
-                subfolder = os.path.join(base_dir, f"level_{level}", f"zone_{zone}")
+                subfolder = join(base_dir, f"level_{level}", f"zone_{zone}")
                 os.makedirs(subfolder, exist_ok=True)
-                out_path = os.path.join(subfolder, f"{self.file_name_prefix}grid_{zone}_{level}.parquet")
+                out_path = join(subfolder, f"{self.file_name_prefix}grid_{zone}_{level}.parquet")
                 df_enriched.to_parquet(out_path, index=False)
 
         else:
@@ -1203,7 +1208,7 @@ class HenarcmeoGrid:
         con = duckdb.connect(database=db_path, read_only=False)
 
         for path in parquet_paths:
-            table_name = table_prefix + os.path.basename(path).replace(".parquet", "")
+            table_name = table_prefix + basename(path).replace(".parquet", "")
             try:
                 con.execute(f"CREATE OR REPLACE TABLE {table_name} AS SELECT * FROM read_parquet('{path}')")
             except Exception as e:
@@ -1217,8 +1222,8 @@ class HenarcmeoGrid:
     #     """
     #     file_ext = ext or self.output_format.lower()
     #     fname = f"{self.file_name_prefix}grid_{zone}_{level}.{file_ext}"
-    #     path = os.path.join(self.output_dir, fname)
-    #     return os.path.exists(path)
+    #     path = join(self.output_dir, fname)
+    #     return exists(path)
 
 
     def _save_output(self, all_gdfs: List[gpd.GeoDataFrame], level: Union[int, str]):
@@ -1231,6 +1236,7 @@ class HenarcmeoGrid:
             zone = "all_zones"
             path = self._construct_tile_file_path(zone, level)
             self._write_file(combined, path)
+            self.generated_file_paths.append(path)
             del combined
             gc.collect()
         
@@ -1246,7 +1252,10 @@ class HenarcmeoGrid:
 
                 zone = df["zone"].iloc[0] if "zone" in df.columns else "unknown"
                 path = self._construct_tile_file_path(zone, level)
+                path = join(dirname(path), f"{level}m" , basename(path))
+                os.makedirs(dirname(path), exist_ok=True)
                 self._write_file(df, path)
+                self.generated_file_paths.append(path)
                 del df
                 gc.collect()
  
@@ -1263,7 +1272,7 @@ class HenarcmeoGrid:
         elif self.output_format == "PARQUET":
             if "geometry" not in gdf.columns:
                 gdf.set_geometry("geometry", inplace=True)
-            print("Saving to Parquet...")
+            print("Saving to Parquet...", path)
             gdf.to_parquet(path, index=False, compression='snappy')
         elif self.output_format == "PARQUET_NO_COMPRESS":
             if "geometry" not in gdf.columns:
@@ -1312,7 +1321,7 @@ class HenarcmeoGrid:
             "tiles": len(tile_gdf),
             "note": note
         }
-        path = os.path.join(self.output_dir, f"{self.file_name_prefix}manifest_level_{grid_level}.json")
+        path = join(self.output_dir, f"{self.file_name_prefix}manifest_level_{grid_level}.json")
         with open(path, "w") as f:
             import json
             json.dump(manifest, f, indent=2)
@@ -1355,7 +1364,7 @@ class HenarcmeoGrid:
         if manifest_records:
             import pandas as pd
             manifest_df = pd.DataFrame(manifest_records)
-            manifest_df.to_parquet(os.path.join(self.output_dir, output_name), index=False)
+            manifest_df.to_parquet(join(self.output_dir, output_name), index=False)
             print(f"[INFO] Grid manifest written to {output_name}")
         else:
             print("[WARNING] No data to write into manifest.")
@@ -1401,7 +1410,7 @@ class HenarcmeoGrid:
         lines.append("- Training region sampling and AI benchmarking")
 
         # Save the README file
-        readme_path = os.path.join(self.output_dir, output_name)
+        readme_path = join(self.output_dir, output_name)
         with open(readme_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
         print(f"[INFO] README.md saved to {readme_path}")
@@ -1414,22 +1423,33 @@ class HenarcmeoGrid:
         """
         import geopandas as gpd
         dfs = []
+        fails = 0
         for path in self.generated_file_paths:
             try:
                 if path.endswith(".parquet"):
-                    df = pd.read_parquet(path)
+                    df = gpd.read_parquet(path)
                 else:
-                    # Read the file using geopandas         
-                    # This will automatically handle the geometry column
                     df = gpd.read_file(path)
-                cols_to_drop = ["geometry", "crs", "level", "zone","x_idx", "y_idx"]
+                # if "geometry" in df.columns:
+                if df.crs.to_epsg() != 4326:
+                    df["utm_footprint"] = df.geometry.to_wkt()
+
+                centroids = df.geometry.centroid.to_crs("EPSG:4326")
+                df["centre_lon"] = centroids.x
+                df["centre_lat"] = centroids.y
+                
+                df = df.to_crs("EPSG:4326")
+
+                cols_to_drop = ["geometry", "crs", "level", "zone","x_idx", "y_idx", "tile_hash"]
                 for col in cols_to_drop:
                     if col in df.columns:
                         df.drop(columns=col, inplace=True)
-                dfs.append(df)
+                dfs.append(df) 
                 del df
             except Exception as e:
-                print(f"Failed to read {path}: {e}")
+                fails += 1
+
+        print(f"[INFO] {len(dfs)} tile files read successfully, {fails} weren't found.")
         if dfs:
             merged = pd.concat(dfs, ignore_index=True)
             out_dir = Path(self.output_dir)
@@ -1449,7 +1469,7 @@ class HenarcmeoGrid:
         # extensions = ["*.gpkg", "*.shp", "*.geojson", "*.parquet"]
         from glob import glob
         # for ext in extensions:
-        tile_files = glob(os.path.join(folder, ext))
+        tile_files = glob(join(folder, ext))
         # print(ext, tile_files)
         self.generated_file_paths.extend(tile_files)
         return tile_files

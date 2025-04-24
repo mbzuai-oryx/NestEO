@@ -41,7 +41,7 @@ def main(config_file="grid_config.yaml"):
         generate=config.get("generate", True),
     )
 
-    # grid.run()
+    grid.run()
 
 
 if __name__ == "__main__":
