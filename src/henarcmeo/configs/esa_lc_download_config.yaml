@@ -1,8 +1,16 @@
 # Links and files to download from ESA Worldcover site
 out_path: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
 base_link: "https://zenodo.org/records/7254221/files/"
-download: false
-extract: false
+# gdown_link: "10yPrhI6AGWsz0ze6P98UQJKks8QzDAhZ"
+# https://drive.google.com/file/d/1-4gybeapCp00LKe4stwSomAAv9FmZZ_y/view?usp=sharing
+
+gdrive_files:
+  - id: 1-4gybeapCp00LKe4stwSomAAv9FmZZ_y
+    name: ESADatasetGlobal_zerorasters.zip
+  # ... add the rest
+gdrive: false
+download: true
+extract: true
 outlines: true
 # The following files are the macrotile files that contain the 10m resolution land cover data
 # The macrotile files are large and contain multiple tiles, so they are downloaded separately

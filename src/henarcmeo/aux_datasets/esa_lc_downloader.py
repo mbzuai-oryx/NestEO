@@ -1,6 +1,8 @@
 from utils_aux import *
 import zipfile
 
+
+
 def main(config_file="esa_lc_config.yaml"):
     config_path = Path(config_file)
     if not config_path.exists():
@@ -8,6 +10,8 @@ def main(config_file="esa_lc_config.yaml"):
     config = load_config(config_path)
     out_path = config.get("out_path", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs")
     base_link = config.get("base_link", "https://zenodo.org/records/7254221/files/")
+    gdown_link = config.get("gdown_link", "")
+    gdrive = config.get("gdrive", False)
     download = config.get("download", True)
     extract = config.get("extract", True)
     outlines = config.get("outlines", True)
@@ -38,42 +42,53 @@ def main(config_file="esa_lc_config.yaml"):
     print(f"Found {len(tile_filenames)} unique tile filenames...")
 
     # Base link (just replace filename at the end)
-    base_link = "https://zenodo.org/records/7254221/files/"
+    # base_link = "https://zenodo.org/records/7254221/files/"
     if download:
         success = 0
-        # Download each tile
-        for filename in tile_filenames:
-            url = base_link + filename
-            dest_path = os.path.join(out_path, filename)
-            # Check if file already exists and is of same size
-            if os.path.exists(dest_path):
-                size_on_disk = os.path.getsize(dest_path)
-                remote_size = get_remote_file_size(url)
-                print(f"File exists: {dest_path}. Size on disk: {size_on_disk}. Remote Size on site: {remote_size}.")
-                if size_on_disk == remote_size:
-                    print(f"File already exists: {dest_path}. Skipping download.")
-                    success += 1
-                    continue
-                else:
-                    print(f"File exists but size differs: {dest_path}. Redownloading.")
-
-
-            print(f"Downloading {filename}...")
-            # Retry download if it fails
-            for i in range(3):
-                try:
-                    # Download the file
-                    urlretrieve(url, dest_path)
-                    print(f"Saved to: {dest_path}")
-                    success += 1  
-                    break
-                except Exception as e:
-                    print(f"**ERROR**: Failed to download {filename}. Reason: {e}")
-                    if i == 2:
-                        print(f"Giving up on {filename}.")
-                    else:
-                        print(f"Retrying...")
+        if gdrive and gdown_link:
+            import gdown 
+            print("Downloading from Google Drive...")
+            download_drive_folder(gdown_link, out_path)
+        else:
+            print("Downloading from Zenodo...")
+            # Download each tile
+            for filename in tile_filenames:
+                url = base_link + filename
+                dest_path = os.path.join(out_path, filename)
+                # Check if file already exists and is of same size
+                if os.path.exists(dest_path):
+                    size_on_disk = os.path.getsize(dest_path)
+                    remote_size = get_remote_file_size(url)
+                    print(f"File exists: {dest_path}. Size on disk: {size_on_disk}. Remote Size on site: {remote_size}.")
+                    if size_on_disk == remote_size:
+                        print(f"File already exists: {dest_path}. Skipping download.")
+                        success += 1
                         continue
+                    else:
+                        print(f"File exists but size differs: {dest_path}. Redownloading.")
+
+
+                print(f"Downloading {filename}...")
+                # Retry download if it fails
+                for i in range(3):
+                    try:
+                        # Download the file
+                        urlretrieve(url, dest_path)
+                        print(f"Saved to: {dest_path}")
+                        success += 1  
+                        break
+                    except Exception as e:
+                        print(f"**ERROR**: Failed to download {filename}. Reason: {e}")
+                        if i == 2:
+                            print(f"Giving up on {filename}.")
+                        else:
+                            print(f"Retrying...")
+                            continue
+
+        if gdrive and config.get("gdrive_files"):
+            print("Downloading from Google Drive (file-by-file)...")
+            download_drive_files(config["gdrive_files"], out_path)
+
 
     if extract:
         zip_files = [f for f in os.listdir(out_path) if f.endswith(".zip")]
@@ -111,7 +126,7 @@ def main(config_file="esa_lc_config.yaml"):
 
 if __name__ == "__main__":
     import sys, os
-    config_arg = sys.argv[1] if len(sys.argv) > 1 else "esa_lc_config.yaml"
+    config_arg = sys.argv[1] if len(sys.argv) > 1 else "configs/esa_lc_download_config.yaml"
     main(config_file=config_arg)
 
 

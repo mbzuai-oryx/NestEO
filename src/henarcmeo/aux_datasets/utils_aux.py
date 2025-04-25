@@ -94,3 +94,47 @@ def get_remote_file_size(url):
     except (URLError, HTTPError) as e:
         print(f"Failed to access {url}: {e}")
     return None
+
+def download_drive_folder(folder_url_or_id, output_dir="downloads"):
+    # If user passed full URL, extract folder ID
+    import gdown
+    if folder_url_or_id.startswith("http"):
+        try:
+            folder_id = folder_url_or_id.split("/folders/")[1].split("?")[0]
+        except IndexError:
+            raise ValueError("Invalid Google Drive folder URL format.")
+    else:
+        folder_id = folder_url_or_id
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    gdown.download_folder(
+        id=folder_id,
+        output=str(output_path),
+        quiet=False,
+        use_cookies=False
+    )
+    print(f"\n Download completed to: {output_path.resolve()}")
+
+
+
+def download_drive_files(file_list, output_dir):
+    import gdown
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    for file in file_list:
+        file_id = file["id"]
+        filename = file["name"]
+        out_path = output_dir / filename
+
+        if out_path.exists():
+            print(f"✔ Skipping {filename}, already exists.")
+            continue
+
+        url = f"https://drive.google.com/uc?id={file_id}"
+        try:
+            gdown.download(url, str(out_path), quiet=False)
+        except Exception as e:
+            print(f"**ERROR**: Failed to download {filename}: {e}")
