@@ -38,10 +38,10 @@ def main(config_file="grid_config.yaml"):
         skip_existing=config.get("skip_existing", True),
         ref_level=config.get("ref_level"),
         ref_dir=config.get("ref_dir", ""),
-        generate=config.get("generate", True),
+        generate=config.get("generate", False),
     )
 
-    # grid.run()
+    grid.run()
 
 
 if __name__ == "__main__":

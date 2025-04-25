@@ -39,7 +39,6 @@ warnings.filterwarnings("ignore", message="'GeoDataFrame.swapaxes' is deprecated
 from osgeo import gdal
 gdal.UseExceptions()
 
-
 def spatial_kmeans_partition(gdf, n_clusters=20, random_state=42):
     """Cluster polygons spatially using centroid coordinates."""
     centroids = np.array([[geom.centroid.x, geom.centroid.y] for geom in gdf.geometry])
@@ -48,7 +47,6 @@ def spatial_kmeans_partition(gdf, n_clusters=20, random_state=42):
     
     partitions = [gdf[gdf["cluster"] == k].drop(columns="cluster") for k in range(n_clusters)]
     return partitions
-
 
 def calculate_landcover_proportions(masked_data):
     lc_values = masked_data.flatten()
