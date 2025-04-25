@@ -23,7 +23,7 @@ def main(config_file="esa_lc_config.yaml"):
 
     # Create a YAML structure snapshot
     structure = HenarcmeoStructure(root_folder=root_folder)
-    structure.create_structure_yaml(out_file=yaml_path, include_files=True, include_sizes=True)
+    # structure.create_structure_yaml(out_file=yaml_path, include_files=True, include_sizes=True)
 
 
     # Recreate structure elsewhere
