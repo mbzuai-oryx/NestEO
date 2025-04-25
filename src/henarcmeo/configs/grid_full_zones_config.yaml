@@ -17,7 +17,7 @@ include_polar: true                        # If True, generates polar grids
 skip_existing: true                         # Skip grid generation if output already exists
 save_wgs_files: false                        # Export WGS84 versions alongside UTM
 save_single_file: false                      # Save full grid as one .parquet per level
-generate: true                              # Flag to trigger actual generation (safe for dry-run toggle)
+generate: false                              # Flag to trigger actual generation (safe for dry-run toggle)
 
 # Optional advanced
 # chunked_levels: [300]                       # For large levels, save in multiple chunks

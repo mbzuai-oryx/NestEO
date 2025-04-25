@@ -6,10 +6,11 @@ excluded_zones: ["1N", "1S", "60N", "60S"]  # or leave empty for none
 default_levels: [300, 600, 1200, 6000, 12000, 120000]
 
 
-n_workers: 8
-memory_limit: 4  # in GB
+n_workers: 6
+memory_limit: 8  # in GB
 process_mosaic: false
 final_proportions: true
+large_factor: 4  # For large grids, increase the factor to avoid memory issues
 
 # Paths
 raster_dir: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"

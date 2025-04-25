@@ -36,6 +36,9 @@ from osgeo import gdal
 import rasterio
 
 warnings.filterwarnings("ignore", message="'GeoDataFrame.swapaxes' is deprecated")
+from osgeo import gdal
+gdal.UseExceptions()
+
 
 def spatial_kmeans_partition(gdf, n_clusters=20, random_state=42):
     """Cluster polygons spatially using centroid coordinates."""
@@ -269,7 +272,7 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
 
     n_workers = config.get("n_workers", 8)  # Number of workers for parallel processing
     # Memory limit for each worker (in GB)
-    memory_limit = config.get("memory_limit", 8)  # in GB
+    mem_limit = config.get("memory_limit", 8)  # in GB
     process_mosaic = config.get("process_mosaic", False)
     final_proportions = config.get("final_proportions", False)  # If True, will compute final proportions
     excluded_zones = config.get("excluded_zones", [])
@@ -361,8 +364,9 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
                 del super_zero_tiles, super_df  # Clean up memory
                 gc.collect()
 
-                
-                large_factor = round((1/np.sqrt(grid_size)*100)+1, 0)
+                large_factor = config.get("large_factor", 1)
+                if large_factor is None or large_factor == 1:
+                    large_factor = round((1/np.sqrt(grid_size)*100)+1, 0)
                 # large_factor = round((np.sqrt(non_zero_cells)/100) + 1, 0)
                 # if non_zero_cells > 50000 and non_zero_cells < 100000:
                 #     large_factor = 2
@@ -375,7 +379,7 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
 
                 partition_factor = n_workers*2*large_factor
                 partition_size = int(non_zero_cells//partition_factor)+1
-                memory_limit = f"{memory_limit}GB"
+                memory_limit = f"{mem_limit}GB"
                 print("partition_size: ", partition_size, "memory_limit: ", memory_limit)
                 df = run_zone(zone, non_zero_gdf, raster_path, resolution=resolution, partition_size=partition_size, 
                         max_pixels=1e12, raster_outline_gdf=raster_outline_gdf, n_workers=n_workers, memory_limit=memory_limit)
