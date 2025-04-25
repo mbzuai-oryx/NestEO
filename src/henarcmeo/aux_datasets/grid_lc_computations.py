@@ -87,7 +87,7 @@ def process_partition(partition_gdf, raster_path, dst_crs, resolution, zone_name
     if zone_name in ["1N", "1S", "60N", "60S"]:
         zone_west = -179.999 + (utm_zone_number - 1) * 6
         zone_east = zone_west + 5.9999
-        print(f"Clamping src_bounds for {zone_name} to {zone_west}–{zone_east}")
+        # print(f"Clamping src_bounds for {zone_name} to {zone_west}–{zone_east}")
         # Clamp the WGS84 bounds to the UTM zone
         src_bounds = (max(src_bounds[0], zone_west), src_bounds[1],
             min(src_bounds[2], zone_east), src_bounds[3])
@@ -145,7 +145,11 @@ def process_partition(partition_gdf, raster_path, dst_crs, resolution, zone_name
         raster_paths = [join(raster_path, f) for f in raster_names if exists(join(raster_path, f))]
 
         if not raster_paths:
-            raise RuntimeError(f"No input rasters found for bounds: {src_bounds}")
+            proportions = partition_gdf[["tile_id"]].copy()
+            proportions["landcover_props"] = ["{0: 1.0}"] * len(proportions)
+            result_df = pd.DataFrame(proportions, columns=["tile_id", "landcover_props"])
+            return result_df
+            # raise RuntimeError(f"No input rasters found for bounds: {src_bounds}")
 
         with tempfile.NamedTemporaryFile(suffix=".vrt", delete=False) as tmp_vrt:
             vrt_path = tmp_vrt.name
@@ -256,10 +260,11 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
     config = load_config(config_path)
     grid_sizes = config.get("grid_sizes", [120000, 12000, 6000, 1200, 600, 300])
     resolutions = config.get("resolutions", [10])
-    zones = config.get("zones", None)  # or leave empty for all
-    if zones is None or len(zones) == 0:
+    zones = config.get("zones", [])  # or leave empty for all
+    if len(zones) == 0:
         # Generate zones if not provided or empty
         zones = [f"{i}{d}" for i in range(1, 61) for d in ["N", "S"]]
+        print(zones)
     default_levels = config.get("default_levels", [300, 600, 1200, 6000, 12000, 120000])
 
     n_workers = config.get("n_workers", 8)  # Number of workers for parallel processing
@@ -269,6 +274,7 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
     final_proportions = config.get("final_proportions", False)  # If True, will compute final proportions
     excluded_zones = config.get("excluded_zones", [])
     zones = [z for z in zones if z not in excluded_zones]
+    print(zones)
     raster_outline_path = config.get("raster_outline_path", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp")
     raster_dir = config.get("raster_dir", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs")
     output_dir = config.get("output_dir", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions")
@@ -327,6 +333,7 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
                     )
                 else:
                     super_zero_tiles = set()
+                    super_df = None
 
                 if super_zero_tiles:
                     zero_gdf = gdf[gdf["super_id"].isin(super_zero_tiles)].copy()
@@ -350,7 +357,7 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
                 non_zero_cells = len(non_zero_gdf)
                 print(f"The zero records: {len(zero_gdf)}, The non-zero records: {non_zero_cells}")
                 print(f"Percent processing: {non_zero_cells/total_cells*100}%")
-
+            
                 del super_zero_tiles, super_df  # Clean up memory
                 gc.collect()
 
@@ -401,4 +408,4 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
 if __name__ == "__main__":
     import sys, os
     config_arg = sys.argv[1] if len(sys.argv) > 1 else "configs/esa_lc_props_config.yaml"
-    main()
+    main(config_arg)

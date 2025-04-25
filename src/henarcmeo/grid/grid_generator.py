@@ -1254,7 +1254,7 @@ class HenarcmeoGrid:
 
                 zone = df["zone"].iloc[0] if "zone" in df.columns else "unknown"
                 path = self._construct_tile_file_path(zone, level)
-                path = join(dirname(path), f"{level}m" , basename(path))
+                path = join(dirname(path), f"grid_{level}m" , basename(path))
                 os.makedirs(dirname(path), exist_ok=True)
                 self._write_file(df, path)
                 self.generated_file_paths.append(path)

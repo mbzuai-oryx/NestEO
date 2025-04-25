@@ -1,8 +1,8 @@
 grid_sizes: [120000, 12000, 6000, 1200, 600, 300]
 resolutions: [10]
 
-zones: None  # or leave empty for all
-excluded_zones: []
+zones: []  # or leave empty for all
+excluded_zones: ["1N", "1S", "60N", "60S"]  # or leave empty for none
 default_levels: [300, 600, 1200, 6000, 12000, 120000]
 
 
