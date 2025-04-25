@@ -1,0 +1,5 @@
+# configs/structure_config.yaml
+
+root_folder: "None"
+yaml_path: "./structure.yaml"
+destination_path: "D:/henarcmeo_hf"

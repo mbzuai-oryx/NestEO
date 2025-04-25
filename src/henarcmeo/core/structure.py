@@ -5,15 +5,16 @@ from pathlib import Path
 from huggingface_hub import hf_hub_download, upload_file
 import json
 from datetime import datetime
+import yaml
 
 class HenarcmeoStructure():
     def __init__(self, root_folder=None, hf_repo_id=None, structure_file="structure.parquet"):
         self.root_folder = Path(root_folder) if root_folder else None
         self.hf_repo_id = hf_repo_id
         self.structure_file = structure_file
-
         self.structure_path = "index_structure"
-        if Path(self.root_folder / self.structure_path / self.structure_file).exists():
+
+        if self.root_folder and Path(self.root_folder / self.structure_path / self.structure_file).exists():
             self.structure_df = pd.read_parquet(self.root_folder / self.structure_path / self.structure_file)
             print("read structure from local")
         else:
@@ -84,6 +85,46 @@ class HenarcmeoStructure():
             raise ValueError("Unsupported output format. Use 'parquet' or 'csv'.")
         return self.structure_df
 
+
+    def create_structure_yaml(self, out_file="structure.yaml", include_files=True, include_sizes=True):
+        def build_nested_dict(base_path):
+            structure = {}
+            for item in sorted(base_path.iterdir()):
+                if item.is_dir():
+                    structure[item.name] = build_nested_dict(item)
+                elif include_files:
+                    structure[item.name] = {
+                        "file_type": item.suffix.lstrip("."),
+                        "size": os.path.getsize(item) if include_sizes else None
+                    }
+            return structure
+
+        structure = {"structure": build_nested_dict(self.root_folder)}
+        yaml_path = self.root_folder / self.structure_path / out_file
+        with open(yaml_path, "w") as f:
+            yaml.dump(structure, f, sort_keys=False)
+        print(f"YAML structure saved to: {yaml_path}")
+        return yaml_path
+
+    def replicate_structure_from_yaml(self, yaml_path, destination_path, create_empty_files=True):
+        with open(yaml_path, "r") as f:
+            structure = yaml.safe_load(f)
+
+        def create_from_dict(structure, base_path):
+            for name, content in structure.items():
+                path = base_path / name
+                if isinstance(content, dict) and ("file_type" not in content):
+                    path.mkdir(parents=True, exist_ok=True)
+                    create_from_dict(content, path)
+                elif create_empty_files:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(path, "wb") as f:
+                        f.write(b"")
+
+        destination_path = Path(destination_path)
+        create_from_dict(structure.get("structure", {}), destination_path)
+        print(f"Structure recreated under: {destination_path}")
+
     def load_structure_from_hf(self):
         if not self.hf_repo_id:
             raise ValueError("hf_repo_id must be provided to fetch from Hugging Face.")
@@ -151,14 +192,8 @@ class HenarcmeoStructure():
     def compare_current_with_structure(self):
         pass  # Check integrity by size, rows, metadata
 
-    def download_missing_files(self, filter_conditions=None):
-        pass  # Future: Lazy Dask-based fetching of subsets
-
     def validate_integrity(self):
         pass  # Future: hash or size+row+tags validation
 
     def update_structure(self):
         pass  # Future: Rescan and overwrite structure.parquet
-
-    def subset_and_replicate(self, filters=None):
-        pass  # Future: replicate only a filtered structure subset

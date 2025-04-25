@@ -160,10 +160,16 @@ class HenarcmeoGrid:
             if self.include_polar:
                 for pole in ["NP", "SP"]:
                     path = self._construct_tile_file_path(zone, level)
-                    if self.skip_existing and exists(path): #self._file_exists_for_tile(pole, level):  
-                        print(f"[SKIP] {zone} level {level} already exists.")
-                        # self.generated_file_paths.append(path)
-                        continue
+                    if self.skip_existing:
+                        path = join(dirname(path), f"grid_{level}m" , basename(path))
+                        if exists(path): # self._file_exists_for_tile(zone, level):
+                            print(f"[SKIP] {pole} level {level} already exists.")
+                            self.generated_file_paths.append(path)
+                            continue
+                    # if self.skip_existing and exists(path): #self._file_exists_for_tile(pole, level):  
+                    #     print(f"[SKIP] {zone} level {level} already exists.")
+                    #     # self.generated_file_paths.append(path)
+                    #     continue
 
                     gdf = self._generate_polar_grid(level, pole)
                     if not gdf.empty:

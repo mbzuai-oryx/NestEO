@@ -1,4 +1,4 @@
-from utils_aux import *
+from henarcmeo.aux_datasets.utils_aux import *
 import zipfile
 
 

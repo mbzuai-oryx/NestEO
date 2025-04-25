@@ -1,0 +1,19 @@
+git clone https://github.com/uceshaf/henarcmeo
+cd henarcmeo
+pip install -r requirements.txt
+pip install -e .
+
+
+
+# Before running below, Open config files and change folder path of henarmeo_hf folder where it was created on storage
+
+python scripts\create_and_load_structure.py configs\structure_config.yaml
+
+python scripts\generate_grids.py configs\grid_full_zones_config.yaml
+
+python scripts\esa_lc_downloader.py configs\esa_lc_download_config.yaml
+
+python scripts\grid_lc_computations.py configs\esa_lc_props_config.yaml
+
+
+

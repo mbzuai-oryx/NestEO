@@ -9,7 +9,7 @@ gdrive_files:
     name: ESADatasetGlobal_zerorasters.zip
   # ... add the rest
 gdrive: false
-download: true
+download: false
 extract: true
 outlines: true
 # The following files are the macrotile files that contain the 10m resolution land cover data

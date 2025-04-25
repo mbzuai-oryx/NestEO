@@ -19,6 +19,7 @@ FOLDERS = [
     ".github/workflows",
     "docs",
     "examples",
+    "configs",
     "scripts",
     "tests",
     f"src/{PACKAGE_NAME}/core",
@@ -53,7 +54,8 @@ BOOTSTRAP = {
         [project.optional-dependencies]
         geo = ["geopandas", "shapely", "pyproj", "rasterio"]
         hf  = ["huggingface-hub", "dask[dataframe]"]
-
+        others = ["gdown", "scikit-learn", "tqdm", "yaml"]
+        
         [build-system]
         requires = ["hatchling"]
         build-backend = "hatchling.build"

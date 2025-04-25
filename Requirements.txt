@@ -1,0 +1,38 @@
+# Core scientific stack
+numpy>=1.23
+pandas>=2.0
+scikit-learn
+tqdm
+joblib
+
+# Geospatial libraries
+geopandas
+shapely
+rasterio
+pyproj
+fiona
+dask[distributed]
+dask-geopandas
+
+# Plotting & visualization
+matplotlib
+folium
+
+# YAML and parsing
+pyyaml
+
+# Google Drive download
+gdown
+geohash2
+
+# GDAL bindings for raster tools
+gdal
+
+# System and utility libraries
+psutil
+
+# Hugging Face Hub (if you're uploading/downloading files)
+huggingface_hub
+
+# Optional for Parquet I/O and performance
+pyarrow>=14.0
