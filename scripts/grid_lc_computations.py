@@ -83,7 +83,11 @@ def process_partition(partition_gdf, raster_path, dst_crs, resolution, zone_name
     snapped_maxy = maxy
     dst_transform = rasterio.Affine(resolution, 0, minx, 0, -resolution, snapped_maxy)
     src_bounds = warp.transform_bounds(dst_crs, "EPSG:4326", minx, miny, snapped_maxx, maxy)
-    utm_zone_number = int(zone_name[:-1])
+    try:
+        utm_zone_number = int(zone_name[:-1])
+    except:
+        utm_zone_number = zone_name[0:2]
+    # utm_zone_number = int(zone_name[:-1])
     
     if zone_name in ["1N", "1S", "60N", "60S"]:
         zone_west = -179.999 + (utm_zone_number - 1) * 6
@@ -94,6 +98,28 @@ def process_partition(partition_gdf, raster_path, dst_crs, resolution, zone_name
             min(src_bounds[2], zone_east), src_bounds[3])
         if (src_bounds[2] - src_bounds[0]) > 10:
             raise RuntimeError(f"Clamped longitude range too wide: {src_bounds}")
+
+    # For south polar zone SP, need to clamp the latitude bounds
+    if zone_name == "SP":
+        zone_south = -89.5
+        zone_north = 90.0
+        print(f"Clamping src_bounds for {zone_name} to {zone_south}–{zone_north}")
+        # Clamp the WGS84 bounds to the UTM zone
+        src_bounds = (src_bounds[0], max(src_bounds[1], zone_south),
+            src_bounds[2], min(src_bounds[3], zone_north))
+        if (src_bounds[3] - src_bounds[1]) > 10:
+            raise RuntimeError(f"Clamped latitude range too wide: {src_bounds}")
+        
+    # For norht polar zone NP, also, need to clamp the latitude bounds
+    if zone_name == "NP":
+        zone_south = 0.0
+        zone_north = 89.5
+        print(f"Clamping src_bounds for {zone_name} to {zone_south}–{zone_north}")
+        # Clamp the WGS84 bounds to the UTM zone
+        src_bounds = (src_bounds[0], max(src_bounds[1], zone_south),
+            src_bounds[2], min(src_bounds[3], zone_north))
+        if (src_bounds[3] - src_bounds[1]) > 10:
+            raise RuntimeError(f"Clamped latitude range too wide: {src_bounds}")
 
 
     proportions = []

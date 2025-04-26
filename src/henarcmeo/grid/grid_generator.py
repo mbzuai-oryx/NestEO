@@ -159,10 +159,10 @@ class HenarcmeoGrid:
             # Polar Zones
             if self.include_polar:
                 for pole in ["NP", "SP"]:
-                    path = self._construct_tile_file_path(zone, level)
+                    path = self._construct_tile_file_path(pole, level)
                     if self.skip_existing:
                         path = join(dirname(path), f"grid_{level}m" , basename(path))
-                        if exists(path): # self._file_exists_for_tile(zone, level):
+                        if exists(path): # self._file_exists_for_tile(pole, level):
                             print(f"[SKIP] {pole} level {level} already exists.")
                             self.generated_file_paths.append(path)
                             continue
@@ -180,8 +180,7 @@ class HenarcmeoGrid:
                             self._save_output([gdf], level)
                             # self.generated_file_paths.append(path)
                         else:
-                            level_gdfs.append(gdf)
-                        
+                            level_gdfs.append(gdf)                        
 
             # Save outputs for this level
             if level_gdfs:
@@ -633,9 +632,9 @@ class HenarcmeoGrid:
         lons, lats = transformer.transform(cx, cy)
 
         if pole == "NP":
-            mask = (lats >= 84) & (lats <= 89.8)
+            mask = (lats >= 84) & (lats <= 89.5)
         elif pole == "SP":
-            mask = (lats <= -80) & (lats >= -89.8)
+            mask = (lats <= -80) & (lats >= -89.5)
 
         valid_x = grid_x[mask]
         valid_y = grid_y[mask]
