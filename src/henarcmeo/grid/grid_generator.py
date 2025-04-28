@@ -196,7 +196,7 @@ class HenarcmeoGrid:
                 self.write_futures.clear()
 
             print(f"\n ### Level {level} generation complete. ###\n")
-            self.export_global_tile_index(f"grid_index_{level}m.parquet")
+            # self.export_global_tile_index(f"grid_index_{level}m.parquet")
             # path = join(self.output_dir, "merged_grids", f"grid_index_{level}m.parquet")
             # merge_existing_grid_files()
             print(f"\n ### Level {level} tile index exported. ###\n")    
