@@ -584,7 +584,7 @@ class HenarcmeoGrid:
         # 111 320 m ≈ 1 degree of longitude at the equator
         # Here we are trying to get the overlap in tiles
         lat_rad = np.deg2rad(np.clip(np.abs(lats), 0, 80))       # avoid cos 90
-        factors = {120000: 2.5, 12000: 5, 6000: 6, 1200:8, 600: 10, 300: 20}
+        factors = {120000: 2.5, 12000: 5, 6000: 6, 2400: 7, 1200:8, 600: 10, 300: 20}
         fact = factors[grid_size]
 
         half_deg = (grid_size / fact) / (111_320 * np.cos(lat_rad))
