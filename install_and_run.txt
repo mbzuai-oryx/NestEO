@@ -15,5 +15,7 @@ python scripts\esa_lc_downloader.py configs\esa_lc_download_config.yaml
 
 python scripts\grid_lc_computations.py configs\esa_lc_props_config.yaml
 
+# Extra level 2400 run, again change output_dir path
+python ./scripts/generate_extra_grids ./configs/grid_extra_level_config.yaml
 
 
