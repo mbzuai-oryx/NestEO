@@ -285,7 +285,7 @@ def load_config(config_path):
 def main(config_file="configs/esa_lc_props_config.yaml"):
     config_path = Path(config_file)
     config = load_config(config_path)
-    grid_sizes = config.get("grid_sizes", [120000, 12000, 6000, 1200, 600, 300])
+    grid_sizes = config.get("grid_sizes", [120000, 12000, 2400, 1200, 600, 300])
     resolutions = config.get("resolutions", [10])
     zones = config.get("zones", [])  # or leave empty for all
     if len(zones) == 0:
@@ -302,10 +302,16 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
     excluded_zones = config.get("excluded_zones", [])
     zones = [z for z in zones if z not in excluded_zones]
     print(zones)
-    raster_outline_path = config.get("raster_outline_path", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp")
-    raster_dir = config.get("raster_dir", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs")
-    output_dir = config.get("output_dir", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions")
-    grids_dir = config.get("grids_dir", "D:/henarcmeo_hf/grids")
+    main_path = config.get("main_path", "D:/henarcmeo_hf/")
+    raster_dir = main_path + "datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
+    raster_outline_path = main_path + "datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp"
+    grids_dir = main_path + "grids"
+    output_dir = main_path + "datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
+
+    # raster_outline_path = config.get("raster_outline_path", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp")
+    # raster_dir = config.get("raster_dir", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs")
+    # output_dir = config.get("output_dir", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions")
+    # grids_dir = config.get("grids_dir", "D:/henarcmeo_hf/grids")
 
 
     for grid_size in grid_sizes:
@@ -322,7 +328,7 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
                 print("super_grid_size: ", super_grid_size)
 
                 st = time()
-                out_file = join(f"{grid_dir}/lc_proportions_{resolution}m_{zone}_{grid_size}m.parquet")
+                out_file = join(f"{output_dir}/lc_proportions_{resolution}m_{zone}_{grid_size}m.parquet")
                 print("Output file: ", out_file)
 
                 if exists(out_file):

@@ -16,6 +16,9 @@ def main(config_file="extra_grid_config.yaml"):
         raise FileNotFoundError(f"Config file not found: {config_path.resolve()}")
 
     config = load_config(config_path)
+    main_path = config.get("main_path", "D:/henarcmeo_hf/")
+    output_dir=main_path+"grids"
+    ref_dir = main_path+"datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
 
     # Dynamically pass all supported parameters from config to the class
     grid = HenarcmeoGrid(
@@ -27,7 +30,7 @@ def main(config_file="extra_grid_config.yaml"):
         latlon_bounds=config.get("latlon_bounds"),
         include_polar=config.get("include_polar", False),
         save_geohash=config.get("save_geohash", False),
-        output_dir=config.get("output_dir", "./grid_outputs"),
+        output_dir=output_dir,
         output_format=config.get("output_format", "PARQUET"),
         save_single_file=config.get("save_single_file", True),
         save_wgs_files=config.get("save_wgs_files", True),
@@ -37,7 +40,7 @@ def main(config_file="extra_grid_config.yaml"):
         partition_count=config.get("partition_count", 4),
         skip_existing=config.get("skip_existing", True),
         ref_level=config.get("ref_level"),
-        ref_dir=config.get("ref_dir", ""),
+        ref_dir=ref_dir,
         generate=config.get("generate", False),
     )
 

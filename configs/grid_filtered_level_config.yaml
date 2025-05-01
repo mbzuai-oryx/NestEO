@@ -1,17 +1,21 @@
 # Grid generation configuration for HenarcmeoGrid
 
 # Define all resolution levels in meters
-levels: [120000, 12000, 6000, 1200, 600]
-default_levels: [300, 600, 1200, 6000, 12000, 120000]
+levels: [300]
+default_levels: [300, 600, 1200, 2400, 12000, 120000]
 
 # Leave utm_zones undefined to process ALL zones (1N–60N, 1S–60S)
 # utm_zones: [f"{i}{d}" for i in range(1, 61) for d in ["N", "S"]]
 
 # Output settings
 output_format: "PARQUET"                    # Format: PARQUET or SHP
-main_path: "D:/henarcmeo_hf/"   # Just the main folder where it is located
-
+main_path: "D:/henarcmeo_hf/"
 # output_dir: "D:/henarcmeo_hf/grids"  # Where to write output
+# ref_dir: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
+
+ref_level: 1200                          # Reference level for filtering cells based on LC
+
+
 
 # Optional enhancements
 save_geohash: true                          # Save GeoHash column
@@ -23,5 +27,4 @@ generate: false                              # Flag to trigger actual generation
 
 # Optional advanced
 # chunked_levels: [300]                       # For large levels, save in multiple chunks
-# ref_level: 12000                          # Reference level for spatial alignment
-# ref_dir: "D:/henarcmeo_hf/metadata_current/grids_geo/grid_12000m"
+# partition_count: 4

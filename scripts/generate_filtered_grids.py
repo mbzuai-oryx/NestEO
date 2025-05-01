@@ -12,15 +12,13 @@ def load_config(config_path: Path) -> dict:
 
 def main(config_file="grid_config.yaml"):
     config_path = Path(config_file)
-    config = load_config(config_path)
-    main_path = config.get("main_path", "D:/henarcmeo_hf/")
-    output_dir=main_path+"grids"
-    ref_dir = main_path+"datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
-
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path.resolve()}")
 
     config = load_config(config_path)
+    main_path = config.get("main_path", "D:/henarcmeo_hf/")
+    output_dir=main_path+"grids"
+    ref_dir = main_path+"datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
 
     # Dynamically pass all supported parameters from config to the class
     grid = HenarcmeoGrid(
@@ -42,7 +40,7 @@ def main(config_file="grid_config.yaml"):
         partition_count=config.get("partition_count", 4),
         skip_existing=config.get("skip_existing", True),
         ref_level=config.get("ref_level"),
-        ref_dir=ref_dir,
+        ref_dir=ref_dir,  #config.get("ref_dir", ""),
         generate=config.get("generate", False),
     )
 

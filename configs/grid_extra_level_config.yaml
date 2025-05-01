@@ -9,7 +9,9 @@ default_levels: [300, 600, 1200, 2400, 12000, 120000]
 
 # Output settings
 output_format: "PARQUET"                    # Format: PARQUET or SHP
-output_dir: "D:/henarcmeo_hf/grids"  # Where to write output
+main_path: "D:/henarcmeo_hf/"   # Just the main folder where it is located
+
+# output_dir: "D:/henarcmeo_hf/grids"  # Where to write output
 
 # Optional enhancements
 save_geohash: true                          # Save GeoHash column

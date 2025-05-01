@@ -1,4 +1,4 @@
-grid_sizes: [120000, 12000, 2400, 1200, 600]
+grid_sizes: [300]
 resolutions: [10]
 
 zones: []  # or leave empty for all
@@ -6,7 +6,7 @@ zones: []  # or leave empty for all
 default_levels: [300, 600, 1200, 2400, 12000, 120000]
 
 
-n_workers: 15
+n_workers: 16
 memory_limit: 8  # in GB
 process_mosaic: false
 final_proportions: true
