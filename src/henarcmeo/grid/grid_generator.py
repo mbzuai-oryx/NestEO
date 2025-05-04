@@ -218,10 +218,21 @@ class HenarcmeoGrid:
         origin_y = 0 if hemisphere == "N" else 10000000
 
         if self.latlon_bounds:
-            bbox = box(self.latlon_bounds[2], self.latlon_bounds[0],
-                    self.latlon_bounds[3], self.latlon_bounds[1])
-            bbox_proj = gpd.GeoDataFrame(geometry=[bbox], crs="EPSG:4326").to_crs(crs).total_bounds
+            xmin, ymin, xmax, ymax = self.latlon_bounds  # lon_min, lat_min, lon_max, lat_max
+            assert xmin < xmax and ymin < ymax, "latlon_bounds must be [lon_min, lat_min, lon_max, lat_max]"
+            bbox = box(xmin, ymin, xmax, ymax)
+            bbox_proj = (
+                gpd.GeoDataFrame(geometry=[bbox], crs="EPSG:4326")
+                .to_crs(crs)
+                .total_bounds
+            )
             xmin, ymin, xmax, ymax = bbox_proj
+
+        # if self.latlon_bounds:
+        #     bbox = box(self.latlon_bounds[2], self.latlon_bounds[0],
+        #             self.latlon_bounds[3], self.latlon_bounds[1])
+        #     bbox_proj = gpd.GeoDataFrame(geometry=[bbox], crs="EPSG:4326").to_crs(crs).total_bounds
+        #     xmin, ymin, xmax, ymax = bbox_proj
         else:
             xmin, xmax = origin_x, 900000
             if hemisphere == "N":
