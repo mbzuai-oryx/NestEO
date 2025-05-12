@@ -28,6 +28,7 @@ structure:
             file_type: parquet
             size: 0
     OSM: {}
+  evaluations_path:
   datasets_EO:
     GE_Base: {}
     Landsat: {}
@@ -37,8 +38,8 @@ structure:
     S1RTC: {}
     S2L2A: {}
     S3: {}
-    S5-P: {}
-    Satellogic: {}
+    S5P: {}
+    Newsat: {}
     Umbra: {}
     Wvyne: {}
   embeddings:

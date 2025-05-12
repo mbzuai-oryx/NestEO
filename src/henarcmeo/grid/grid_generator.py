@@ -69,7 +69,7 @@ class HenarcmeoGrid:
         """
 
         self.levels = levels
-        self.default_levels = default_levels or [300, 600, 1200, 6000, 12000, 120000]
+        self.default_levels = default_levels or [300, 600, 1200, 2400, 12000, 120000]
         self.buffer_ratio = buffer_ratio
         self.overlap_ratio = overlap_ratio
         self.utm_zones = utm_zones
@@ -1081,24 +1081,67 @@ class HenarcmeoGrid:
                 "tile_id": tile_id,
                 "zone": zone,
                 "level": level,
-                "x_idx": x_idx,
-                "y_idx": y_idx,
+                # "x_idx": x_idx,
+                # "y_idx": y_idx,
                 "geometry": geom,
-                "buffer": buffer,
+                # "buffer": buffer,
                 "crs": f"EPSG:{crs.to_epsg()}"
             })
 
         if not records:
-            return gpd.GeoDataFrame(columns=["tile_id", "zone", "level", "x_idx", "y_idx", "geometry", "buffer", "crs"], geometry="geometry")
+            return gpd.GeoDataFrame(columns=["tile_id", "zone", "level", "geometry", "crs"], geometry="geometry")
 
-        gdf = gpd.GeoDataFrame(records)
-        gdf.set_geometry("geometry", inplace=True)
+        df = pd.DataFrame(records)
+        unique_epsgs = df["crs"].unique()
 
-        # Set CRS if all tiles have the same one
-        unique_crs = gdf["crs"].unique()
-        if len(unique_crs) == 1:
-            gdf.set_crs(unique_crs[0], inplace=True)
-        return gdf
+        if len(unique_epsgs) == 1:
+            # Use native CRS
+            epsg = unique_epsgs[0]
+            gdf = gpd.GeoDataFrame(df, geometry="geometry", crs=epsg)
+            return gdf
+        else:
+            # Mixed zones – convert to WGS84
+            gdf_all = []
+            for epsg, group_df in df.groupby("crs"):
+                gdf = gpd.GeoDataFrame(group_df, geometry="geometry", crs=epsg)
+                gdf = gdf.to_crs("EPSG:4326")
+                gdf_all.append(gdf)
+
+            return pd.concat(gdf_all, ignore_index=True)
+
+    def _compute_super_id(self, level, zone, x_idx, y_idx) -> Optional[str]:
+        suffix_parts = []
+        if self.buffer_ratio:
+            suffix_parts.append(f"buf{int(self.buffer_ratio * level)}")
+        if self.overlap_ratio:
+            suffix_parts.append(f"ovrlp{int(self.overlap_ratio * 100)}")
+        suffix = "_" + "_".join(suffix_parts) if suffix_parts else ""
+        self.suffix = suffix
+        try:
+            i = self.default_levels.index(level)
+            if i < len(self.default_levels) - 1:
+                super_level = self.default_levels[i + 1]
+                factor = super_level / level
+                if not factor.is_integer():
+                    return None
+                factor = int(factor)
+                return self._make_tile_id(super_level, zone, x_idx // factor, y_idx // factor) + self.suffix
+            else:
+                return None
+        except (ValueError, IndexError):
+            return None
+
+    def get_super_ids_from_tile_ids(self, tile_ids: List[str]) -> List[Dict[str, str]]:
+        results = []
+        for tile_id in tile_ids:
+            meta = self.parse_tile_id(tile_id)
+            if not meta:
+                continue
+
+            super_id = self._compute_super_id(meta["level"], meta["zone"], meta["x_idx"], meta["y_idx"])
+            results.append({"tile_id": tile_id, "super_id": super_id})
+
+        return results
 
 
     def export_tile_metadata(self, gdfs: List[gpd.GeoDataFrame], output_path: Optional[str] = None) -> pd.DataFrame:
