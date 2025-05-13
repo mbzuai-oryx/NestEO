@@ -1,2 +1,2 @@
-## 0.0.1  �  initial scaffold
+## 0.0.1  �  NestEO initial scaffold
 Test

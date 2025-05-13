@@ -1,30 +1,28 @@
-git clone https://github.com/uceshaf/henarcmeo
-cd henarcmeo
+git clone https://github.com/mbzuai-oryx/NestEO
+cd NestEO
 pip install -r requirements.txt
 pip install -e .
 
 
+# For local reproducible creation of grids and metadata computations, follow below steps
 
-# Before running below, Open config files and change folder path of henarmeo_hf folder where it was created on storage
+# Before running below, Open respective config files and change path folder path of NestEO_hf folder where it was created on storage
 
-## Done
+
 python scripts\create_and_load_structure.py configs\structure_config.yaml
 
-## Modified to exlude 300m level at first, other levels are complete and will skip over
 python scripts\generate_grids.py configs\grid_full_zones_config.yaml
-
-## Adding another level 2400 in the levels, just change main_path in config to the main directory of henarcmeo_hf
 python scripts\generate_extra_grids.py configs\grid_extra_level_config.yaml
 
-## To download and extract ESA LC , just change main_path in config to the main directory of henarcmeo_hf
+## To download and extract ESA LC , just change main_path in config to the main directory of NestEO_hf
 python scripts\esa_lc_downloader.py configs\esa_lc_download_config.yaml
 
-## Computing the proportions of LC on each grid cell, just change main_path in config to the main directory of henarcmeo_hf
+## Computing the proportions of LC on each grid cell, just change main_path in config to the main directory of NestEO_hf
 python scripts\grid_lc_computations.py configs\esa_lc_props_config.yaml
 
 # Running 300m level grid again but only on filtered cells based on LC
 python scripts\generate_filtered_grids.py configs\grid_filtered_level_config.yaml
 
-## Computing the proportions of 300 level LC on each grid cell, just change main_path in config to the main directory of henarcmeo_hf
+## Computing the proportions of 300 level LC on each grid cell, just change main_path in config to the main directory of NestEO_hf
 python scripts\grid_lc_computations.py configs\esa_lc_props_filter_config.yaml
 

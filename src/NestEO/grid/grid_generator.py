@@ -1,7 +1,7 @@
-# HEN-ARC_MEO Class Modified for reference level LC filter
+# NestEO Class Modified for reference level LC filter
 
 """
-HEN-ARC-MEO Grid Generator: UTM + Polar Equal-Area Global Tiling System
+NestEO Grid Generator: UTM + Polar Equal-Area Global Tiling System
 Maintains:
 - Equal-area grid cells in meters
 - Hierarchical nesting
@@ -29,7 +29,7 @@ import geopandas as gpd
 import pyproj
 
 
-class HenarcmeoGrid:
+class NestEOGrid:
     def __init__(self,
                 levels: Optional[List[int]] = None,
                 default_levels: Optional[List[int]] = None,
@@ -52,7 +52,7 @@ class HenarcmeoGrid:
                 ref_dir: Optional[str]="",
                 generate: bool = True):
         """
-        Initializes the HEN-ARC-MEO grid generator.
+        Initializes the NestEO grid generator.
         :param levels: List of grid levels (in meters) to generate.
         :param default_levels: Default grid levels if none provided.
         :param buffer_ratio: Buffer ratio for grid cells.
@@ -1479,7 +1479,7 @@ class HenarcmeoGrid:
         print(f"[INFO] README.md saved to {readme_path}")
 
 
-    def export_global_tile_index(self, output_path: str = "henarcmeo_tile_index_all.parquet"):
+    def export_global_tile_index(self, output_path: str = "NestEO_tile_index_all.parquet"):
         """
         Combine all generated grid tiles into a single lightweight Parquet metadata index
         by reading from saved files.

@@ -1,4 +1,4 @@
-from henarcmeo.aux_datasets.utils_aux import *
+from NestEO.aux_datasets.utils_aux import *
 import zipfile
 
 
@@ -8,9 +8,9 @@ def main(config_file="esa_lc_config.yaml"):
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path.resolve()}")
     config = load_config(config_path)
-    main_path = config.get("main_path", "D:/henarcmeo_hf/")
+    main_path = config.get("main_path", "D:/NestEO_hf/")
     out_path = main_path+"datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
-    # out_path = config.get("out_path", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs")
+    # out_path = config.get("out_path", "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs")
     base_link = config.get("base_link", "https://zenodo.org/records/7254221/files/")
     gdown_link = config.get("gdown_link", "")
     gdrive = config.get("gdrive", False)

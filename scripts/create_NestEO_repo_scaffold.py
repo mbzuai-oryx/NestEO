@@ -1,8 +1,8 @@
-# create_henarcmeo_repo.py
+# create_NestEO_repo.py
 """
 Scaffold the Henarc-MEO repository structure in <target_root>.
 Usage:
-    python create_henarcmeo_repo.py /path/to/henarcmeo
+    python create_NestEO_repo.py /path/to/NestEO
 """
 
 from pathlib import Path
@@ -10,7 +10,7 @@ import sys
 import textwrap
 
 # ---------- configurable --------------------------------------------------
-PACKAGE_NAME = "henarcmeo"
+PACKAGE_NAME = "NestEO"
 TARGET = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else Path.cwd()
 # --------------------------------------------------------------------------
 
@@ -34,7 +34,7 @@ FOLDERS = [
 
 # tiny bootstrap files -----------------------------------------------------
 BOOTSTRAP = {
-    "README.md": "# henarcmeo\n\nScalable, hierarchical AI4EO data framework.",
+    "README.md": "# NestEO\n\nScalable, hierarchical AI4EO data framework.",
     ".gitignore": "\n".join(["__pycache__/", ".DS_Store", "*.parquet", ".env"]),
     "CHANGELOG.md": "## 0.0.1  –  initial scaffold",
     "pyproject.toml": textwrap.dedent(

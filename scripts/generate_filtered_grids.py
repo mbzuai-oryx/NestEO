@@ -2,7 +2,7 @@
 
 import yaml
 from pathlib import Path
-from henarcmeo.grid import HenarcmeoGrid
+from NestEO.grid import NestEOGrid
 
 
 def load_config(config_path: Path) -> dict:
@@ -16,12 +16,12 @@ def main(config_file="grid_config.yaml"):
         raise FileNotFoundError(f"Config file not found: {config_path.resolve()}")
 
     config = load_config(config_path)
-    main_path = config.get("main_path", "D:/henarcmeo_hf/")
+    main_path = config.get("main_path", "D:/NestEO_hf/")
     output_dir=main_path+"grids"
     ref_dir = main_path+"datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
 
     # Dynamically pass all supported parameters from config to the class
-    grid = HenarcmeoGrid(
+    grid = NestEOGrid(
         levels=config.get("levels", [120000]),
         default_levels=config.get("default_levels"),
         buffer_ratio=config.get("buffer_ratio", 0.0),

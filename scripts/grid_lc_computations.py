@@ -5,7 +5,7 @@ from os.path import exists, join, basename, dirname, isfile, isdir
 import yaml
 from pathlib import Path
 from time import time
-# from henarcmeo.metadata.esa_lc_props_core import process_grid_zone_batch
+# from NestEO.metadata.esa_lc_props_core import process_grid_zone_batch
 
 os.environ["OMP_NUM_THREADS"] = '2'
 
@@ -302,16 +302,16 @@ def main(config_file="configs/esa_lc_props_config.yaml"):
     excluded_zones = config.get("excluded_zones", [])
     zones = [z for z in zones if z not in excluded_zones]
     print(zones)
-    main_path = config.get("main_path", "D:/henarcmeo_hf/")
+    main_path = config.get("main_path", "D:/NestEO_hf/")
     raster_dir = main_path + "datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
     raster_outline_path = main_path + "datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp"
     grids_dir = main_path + "grids"
     output_dir = main_path + "datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
 
-    # raster_outline_path = config.get("raster_outline_path", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp")
-    # raster_dir = config.get("raster_dir", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs")
-    # output_dir = config.get("output_dir", "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions")
-    # grids_dir = config.get("grids_dir", "D:/henarcmeo_hf/grids")
+    # raster_outline_path = config.get("raster_outline_path", "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp")
+    # raster_dir = config.get("raster_dir", "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs")
+    # output_dir = config.get("output_dir", "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions")
+    # grids_dir = config.get("grids_dir", "D:/NestEO_hf/grids")
 
 
     for grid_size in grid_sizes:

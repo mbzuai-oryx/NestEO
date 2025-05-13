@@ -1,6 +1,6 @@
 # Links and files to download from ESA Worldcover site
-main_path: "D:/henarcmeo_hf/"
-# out_path: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
+main_path: "D:/NestEO_hf/"
+# out_path: "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
 base_link: "https://zenodo.org/records/7254221/files/"
 # gdown_link: "10yPrhI6AGWsz0ze6P98UQJKks8QzDAhZ"
 # https://drive.google.com/file/d/1-4gybeapCp00LKe4stwSomAAv9FmZZ_y/view?usp=sharing

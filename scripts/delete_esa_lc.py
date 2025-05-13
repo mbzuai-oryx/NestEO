@@ -1,5 +1,5 @@
 import os 
-out_path = "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
+out_path = "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
 # Delete zip files after extraction
 zip_files = []
 for zip_file in zip_files:

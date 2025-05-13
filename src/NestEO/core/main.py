@@ -1,17 +1,17 @@
-# src/henarcmeo/core/main.py
+# src/NestEO/core/main.py
 
 from pathlib import Path
 from typing import Optional, Union
-from .structure import HenarcmeoStructure
+from .structure import NestEOStructure
 
 # Placeholder for future modules
-# from ..grid.generator import HENARCmeoGrid
-# from ..metadata.layers import HENARCmeoMetaCompute
-# from ..hf.hub_client import HENARCmeoHubSync
-# from ..datasets.fetch import HENARCmeoDownloader
+# from ..grid.generator import NestEOGrid
+# from ..metadata.layers import NestEOMetaCompute
+# from ..hf.hub_client import NestEOHubSync
+# from ..datasets.fetch import NestEODownloader
 
 
-class Henarcmeo:
+class NestEO:
     """
     Main orchestration class for managing hierarchical, extensible,
     multimodal EO datasets under a unified root folder or remote Hugging Face repo.
@@ -21,7 +21,7 @@ class Henarcmeo:
         self,
         root_folder: Union[str, Path] = None,
         hf_repo_id: Optional[str] = None,
-        project_name: Optional[str] = "henarcmeo",
+        project_name: Optional[str] = "NestEO",
         structure_file: str = "structure.parquet",
         grid_root: Optional[Union[str, Path]] = None,
         metadata_root: Optional[Union[str, Path]] = None,
@@ -37,14 +37,14 @@ class Henarcmeo:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Instantiate subsystems
-        self.structure = HenarcmeoStructure(
+        self.structure = NestEOStructure(
             root_folder=self.root_folder,
             hf_repo_id=self.hf_repo_id,
             structure_file=self.structure_file
         )
 
         # Placeholders (future expansion)
-        self.grid = None  # to be set as HENARCmeoGrid(...)
+        self.grid = None  # to be set as NestEOGrid(...)
         self.downloader = None
         self.metacompute = None
         self.aligner = None

@@ -1,5 +1,5 @@
-from henarcmeo.core.structure import HenarcmeoStructure
-from henarcmeo.aux_datasets.utils_aux import *
+from NestEO.core.structure import NestEOStructure
+from NestEO.aux_datasets.utils_aux import *
 import os
 
 def resolve_path(path_str, base_path=None):
@@ -22,7 +22,7 @@ def main(config_file="esa_lc_config.yaml"):
     os.makedirs(destination_path, exist_ok=True)
 
     # Create a YAML structure snapshot
-    structure = HenarcmeoStructure(root_folder=root_folder)
+    structure = NestEOStructure(root_folder=root_folder)
     # structure.create_structure_yaml(out_file=yaml_path, include_files=True, include_sizes=True)
 
 

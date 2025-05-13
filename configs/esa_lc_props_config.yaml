@@ -13,8 +13,8 @@ final_proportions: true
 large_factor: 4  # For large grids, increase the factor to avoid memory issues
 
 # Paths
-main_path: "D:/henarcmeo_hf/"
-# raster_dir: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
-# raster_outline_path: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp"
-# grids_dir: "D:/henarcmeo_hf/grids"
-# output_dir: "D:/henarcmeo_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
+main_path: "D:/NestEO_hf/"
+# raster_dir: "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs"
+# raster_outline_path: "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_tifs/esa_lc_raster_outlines.shp"
+# grids_dir: "D:/NestEO_hf/grids"
+# output_dir: "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"

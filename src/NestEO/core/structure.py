@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 import yaml
 
-class HenarcmeoStructure():
+class NestEOStructure():
     def __init__(self, root_folder=None, hf_repo_id=None, structure_file="structure.parquet"):
         self.root_folder = Path(root_folder) if root_folder else None
         self.hf_repo_id = hf_repo_id

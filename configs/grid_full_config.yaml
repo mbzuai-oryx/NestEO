@@ -1,4 +1,4 @@
-# Grid generation configuration for HenarcmeoGrid
+# Grid generation configuration for HNestEOGrid
 
 # Define all resolution levels in meters
 # levels: [120000, 12000, 6000, 1200, 600, 300]
@@ -9,7 +9,7 @@ default_levels: [300, 600, 1200, 6000, 12000, 120000]
 
 # Output settings
 output_format: "PARQUET"                    # Format: PARQUET or SHP
-output_dir: "D:/henarcmeo_hf/grids"  # Where to write output
+output_dir: "D:/NestEO_hf/grids"  # Where to write output
 
 # Optional enhancements
 save_geohash: true                          # Save GeoHash column
@@ -22,4 +22,4 @@ generate: true                              # Flag to trigger actual generation 
 # Optional advanced
 # chunked_levels: [300]                       # For large levels, save in multiple chunks
 # ref_level: 12000                          # Reference level for spatial alignment
-# ref_dir: "D:/henarcmeo_hf/metadata_current/grids_geo/grid_12000m"
+# ref_dir: "D:/NestEO_hf/metadata_current/grids_geo/grid_12000m"

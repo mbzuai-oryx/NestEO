@@ -1,9 +1,9 @@
 [project]
-name = "henarcmeo"
+name = "NestEO"
 version = "0.0.1"
-description = "Hierarchical Extensible Nested Aligned Representative Contextual Multimodal EO framework"
+description = "Nested and Aligned Earth Observation Framework with Multimodal Dataset"
 readme = "README.md"
-authors = [{name = "Your Name"}]
+authors = [{name = "---"}]
 requires-python = ">=3.9"
 dependencies = [
     "pandas>=2.0",
