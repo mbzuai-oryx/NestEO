@@ -18,7 +18,7 @@ def main(config_file="grid_config.yaml"):
     config = load_config(config_path)
     main_path = config.get("main_path", "D:/NestEO_hf/")
     output_dir=main_path+"grids"
-    ref_dir = main_path+"datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
+    ref_dir = main_path+"datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions/600m"
 
     # Dynamically pass all supported parameters from config to the class
     grid = NestEOGrid(

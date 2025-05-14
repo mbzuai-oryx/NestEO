@@ -1,8 +1,8 @@
 # Grid generation configuration for HNestEOGrid
 
 # Define all resolution levels in meters
-# levels: [120000, 12000, 6000, 1200, 600, 300]
-default_levels: [300, 600, 1200, 6000, 12000, 120000]
+# levels: [120000, 12000, 2400, 1200, 600, 300]
+default_levels: [300, 600, 1200, 2400, 12000, 120000]
 
 # Leave utm_zones undefined to process ALL zones (1N–60N, 1S–60S)
 # utm_zones: [f"{i}{d}" for i in range(1, 61) for d in ["N", "S"]]

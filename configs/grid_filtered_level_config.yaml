@@ -11,9 +11,9 @@ default_levels: [300, 600, 1200, 2400, 12000, 120000]
 output_format: "PARQUET"                    # Format: PARQUET or SHP
 main_path: "D:/NestEO_hf/"
 # output_dir: "D:/NestEO_hf/grids"  # Where to write output
-# ref_dir: "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions"
+ref_dir: "D:/NestEO_hf/datasets_AUX/Landcover/ESA_WorldCover/ESA_LC_proportions/600m"
 
-ref_level: 1200                          # Reference level for filtering cells based on LC
+ref_level: 600                          # Reference level for filtering cells based on LC
 
 
 
