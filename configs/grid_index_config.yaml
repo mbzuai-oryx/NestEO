@@ -1,0 +1,25 @@
+# Grid generation configuration for HNestEOGrid
+
+# Define all resolution levels in meters
+levels: [120000, 12000, 2400, 1200, 600, 300]
+default_levels: [300, 600, 1200, 2400, 12000, 120000]
+
+# Leave utm_zones undefined to process ALL zones (1N–60N, 1S–60S)
+# utm_zones: [f"{i}{d}" for i in range(1, 61) for d in ["N", "S"]]
+
+# Output settings
+output_format: "PARQUET"                    # Format: PARQUET or SHP
+output_dir: "D:/nesteo_hf/index_structure"  # Where to write output
+
+# Optional enhancements
+# save_geohash: true                          # Save GeoHash column
+include_polar: true                        # If True, generates polar grids
+# skip_existing: true                         # Skip grid generation if output already exists
+# save_wgs_files: true                        # Export WGS84 versions alongside UTM
+# save_single_file: true                      # Save full grid as one .parquet per level
+generate: false                              # Flag to trigger actual generation (safe for dry-run toggle)
+
+# Optional advanced
+# chunked_levels: [300]                       # For large levels, save in multiple chunks
+# ref_level: 12000                          # Reference level for spatial alignment
+# ref_dir: "D:/NestEO_hf/metadata_current/grids_geo/grid_12000m"

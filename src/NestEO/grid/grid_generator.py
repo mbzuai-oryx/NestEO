@@ -515,26 +515,7 @@ class NestEOGrid:
         self._zero_cache[zone] = tuples
         return tuples
 
-
-        # pat = join(
-        #     self.ref_dir,
-        #     f"lc_proportions_*_{zone}_{self.ref_level}m.parquet")
-        # files = glob.glob(pat)
-        # if not files:
-        #     raise FileNotFoundError(f"No ref‑level parquet for zone {zone} under {pat}")
-
-        # df = pd.read_parquet(files[0], columns=["tile_id", "landcover_props"])
-        # df = df[df["landcover_props"] == "{0: 1.0}"]
-
-        # # parse tile_id → (x_idx, y_idx)   ‑‑ vectorised regex
-        # rgx = re.compile(r"_X(\d+)_Y(\d+)")
-        # tuples = set(
-        #     df["tile_id"].str.extract(rgx).astype(int).apply(tuple, axis=1)
-        # )
-        # self._zero_cache[zone] = tuples
-        # return tuples
     # ─────────────────────────────────────────────────────────────────────────────
-
 
     # def ancestor_id_series(self, tile_id_series: pd.Series) -> pd.Series:
     #     """
@@ -559,19 +540,6 @@ class NestEOGrid:
     #         df["zone"] + "_X" + x_anc.astype(str).str.zfill(6) +
     #         "_Y" + y_anc.astype(str).str.zfill(6)
     #     )
-
-    # def _prefilter_grid_centroids(self, cols, rows, grid_size, crs, lon_bounds: Tuple[float, float]):
-    #     grid_x, grid_y = np.meshgrid(cols, rows)
-    #     grid_x = grid_x.ravel()
-    #     grid_y = grid_y.ravel()
-    #     print("Grid X and Y shape: ", grid_x.shape, grid_y.shape)
-    #     cx = grid_x + grid_size / 2
-    #     cy = grid_y + grid_size / 2
-    #     transformer = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
-    #     lons, _ = transformer.transform(cx, cy)
-    #     lon_min, lon_max = lon_bounds
-    #     mask = (lons >= lon_min) & (lons <= lon_max)
-    #     return grid_x[mask], grid_y[mask]
     
     def _prefilter_grid_centroids(self, cols, rows, grid_size, crs,
                                   lon_bounds: Tuple[float, float]):
@@ -747,6 +715,155 @@ class NestEOGrid:
         
         fname = f"{self.file_name_prefix}grid_{zone}_{level}{suffix}.{file_ext}"
         return join(self.output_dir, fname)
+
+
+    # ──────────────────────────────────────────────────────────────
+    def _iter_valid_xy(self, grid_size: int, zone: str):
+        """
+        Yield (x_idx, y_idx) integers for every tile that would exist at
+        *grid_size* and *zone* without creating any geometry.  Internal helper
+        for fast index generation.
+        """
+        if zone in ("NP", "SP"):                       # Polar
+            EPSG = 3413 if zone == "NP" else 3031
+            crs  = CRS.from_epsg(EPSG)
+            bounds = (-4_500_000, 0) if zone == "NP" else (-4_500_000, -4_500_000)
+            origin_x, origin_y = bounds
+            xmax, ymax = origin_x + 9_000_000, origin_y + 4_500_000
+            step  = int(grid_size * (1 - self.overlap_ratio)) if self.overlap_ratio > 0 else grid_size
+            cols  = np.arange(origin_x, xmax, step)
+            rows  = np.arange(origin_y, ymax, step)
+
+            transformer = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+            grid_x, grid_y = np.meshgrid(cols, rows)
+            cx = grid_x.ravel() + grid_size / 2
+            cy = grid_y.ravel() + grid_size / 2
+            _, lats = transformer.transform(cx, cy)
+            mask = (lats >= 84) if zone == "NP" else (lats <= -80)
+            x_idx = ((grid_x.ravel()[mask] - origin_x) // grid_size).astype(int)
+            y_idx = ((grid_y.ravel()[mask] - origin_y) // grid_size).astype(int)
+            return x_idx, y_idx
+
+        # ─── UTM ──────────────────────────────────────────────────
+        zone_num = int(zone[:-1]); hemi = zone[-1]
+        epsg = 32600 + zone_num if hemi == "N" else 32700 + zone_num
+        crs  = CRS.from_epsg(epsg)
+
+        origin_x = 100_000
+        origin_y = 0 if hemi == "N" else 10_000_000
+        xmin, xmax = origin_x, 900_000
+        ymin, ymax = (0, 9_329_005) if hemi == "N" else (0, origin_y)
+
+        step  = int(grid_size * (1 - self.overlap_ratio)) if self.overlap_ratio > 0 else grid_size
+        cols  = np.arange(xmin, xmax, step)
+        rows  = np.arange(ymin, ymax, step)
+
+        # Fast centroid-based lon–lat filter (reuse existing logic)
+        valid_x, valid_y = self._prefilter_grid_centroids(
+            cols, rows, grid_size, crs,
+            ((zone_num - 1) * 6 - 180, zone_num * 6 - 180)
+        )
+        x_idx = ((valid_x - origin_x) // grid_size).astype(int)
+        y_idx = ((valid_y - origin_y) // grid_size).astype(int)
+        keep  = self._mask_by_ref(grid_size, zone, x_idx, y_idx)
+        return x_idx[keep], y_idx[keep]
+
+    def build_tile_index_parquet(
+        self,
+        output_path: str = "grid_index.parquet",
+        row_group_target: int | None = None,
+    ) -> None:
+        """
+        Create a single Parquet file containing *all* tile_id / super_id pairs
+        for every configured level and every UTM + optional polar zone—without
+        generating geometries.
+
+        Parameters
+        ----------
+        output_path : str, default "grid_index.parquet"
+            Destination path.
+        row_group_target : int | None
+            Desired row-group size.  If None, it is set to
+            max(total_rows // 512, 1024).
+        """
+        import pyarrow as pa, pyarrow.parquet as pq
+
+        # ------------------------------------------------------------------ zones
+        zones = [f"{i}{h}" for i in range(1, 61) for h in "NS"]
+        if getattr(self, "include_polar", False):
+            zones += ["NP", "SP"]
+
+        # ---------------------------------------------------------------- pass 1
+        total_rows = 0
+        for level in self.levels:
+            print("Processing Level: ", level)
+            for zone in zones:
+                x_idx, y_idx = self._iter_valid_xy(level, zone)
+                total_rows += x_idx.size
+
+        if total_rows == 0:
+            raise RuntimeError("No tiles found with current configuration.")
+
+        if row_group_target is None:
+            row_group_target = max(total_rows // 1024, 1024)
+
+        # -------------------------------------------------------------- writer
+        schema = pa.schema(
+            [("tile_id", pa.string()), ("super_id", pa.string())]
+        )
+        writer = pq.ParquetWriter(
+            output_path, schema, version="2.6", compression="snappy"
+        )
+
+        # --------------------------------------------------------------- pass 2
+        buffer_tile, buffer_super = [], []
+        buffer_cap = row_group_target
+
+        def _flush():
+            nonlocal buffer_tile, buffer_super
+            if buffer_tile:
+                table = pa.table(
+                    {"tile_id": pa.array(buffer_tile), "super_id": pa.array(buffer_super)}
+                )
+                writer.write_table(table, row_group_size=row_group_target)
+                buffer_tile, buffer_super = [], []
+
+        for level in self.levels:
+            for zone in zones:
+                x_idx, y_idx = self._iter_valid_xy(level, zone)
+                if x_idx.size == 0:
+                    continue
+
+                tiles = [
+                    self._make_tile_id(level, zone, xi, yi)
+                    for xi, yi in zip(x_idx, y_idx)
+                ]
+                supers = [
+                    self._compute_super_id(level, zone, xi, yi)
+                    for xi, yi in zip(x_idx, y_idx)
+                ]
+
+                buffer_tile.extend(tiles)
+                buffer_super.extend(supers)
+
+                # Flush whenever the buffer reaches the cap to respect row_group_target
+                while len(buffer_tile) >= buffer_cap:
+                    slice_end = buffer_cap
+                    table = pa.table(
+                        {
+                            "tile_id": pa.array(buffer_tile[:slice_end]),
+                            "super_id": pa.array(buffer_super[:slice_end]),
+                        }
+                    )
+                    writer.write_table(table, row_group_size=row_group_target)
+                    buffer_tile = buffer_tile[slice_end:]
+                    buffer_super = buffer_super[slice_end:]
+
+        _flush()  # write any remainder
+        writer.close()
+        print(f"[OK] grid index written → {output_path}  "
+            f"({total_rows:,} rows, row_group {row_group_target})")
+
 
 
     def check_satellite_resolution_compatibility(self, grid_sizes: List[int], satellite_resolutions: List[int]) -> pd.DataFrame:
