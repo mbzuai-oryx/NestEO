@@ -771,43 +771,43 @@ class NestEOGrid:
     def build_tile_index_parquet(
         self,
         output_path: str = "grid_index.parquet",
+        levels: list[int] | None = None,
         row_group_target: int | None = None,
     ) -> None:
+        # if a subset is supplied, restrict the loop
+        active_lvls = levels or self.levels
         """
-        Create a single Parquet file containing *all* tile_id / super_id pairs
-        for every configured level and every UTM + optional polar zone—without
-        generating geometries.
+        Write ONE Parquet file with the full (tile_id, super_id) index.
+        Geometry is never touched.
 
         Parameters
         ----------
         output_path : str, default "grid_index.parquet"
-            Destination path.
         row_group_target : int | None
-            Desired row-group size.  If None, it is set to
+            Target number of rows per row-group.  If None, it is set to
             max(total_rows // 512, 1024).
         """
         import pyarrow as pa, pyarrow.parquet as pq
 
-        # ------------------------------------------------------------------ zones
+        # ----------------------------------------------------------- gather zones
         zones = [f"{i}{h}" for i in range(1, 61) for h in "NS"]
         if getattr(self, "include_polar", False):
             zones += ["NP", "SP"]
 
-        # ---------------------------------------------------------------- pass 1
+        # ------------------------------------------------------- quick row count
         total_rows = 0
-        for level in self.levels:
-            print("Processing Level: ", level)
-            for zone in zones:
-                x_idx, y_idx = self._iter_valid_xy(level, zone)
+        for lvl in active_lvls:
+            for z in zones:
+                x_idx, y_idx = self._iter_valid_xy(lvl, z)
                 total_rows += x_idx.size
 
         if total_rows == 0:
             raise RuntimeError("No tiles found with current configuration.")
 
         if row_group_target is None:
-            row_group_target = max(total_rows // 1024, 1024)
+            row_group_target = max(total_rows // 512, 1024)
 
-        # -------------------------------------------------------------- writer
+        # ------------------------------------------------------------- writer
         schema = pa.schema(
             [("tile_id", pa.string()), ("super_id", pa.string())]
         )
@@ -815,55 +815,50 @@ class NestEOGrid:
             output_path, schema, version="2.6", compression="snappy"
         )
 
-        # --------------------------------------------------------------- pass 2
-        buffer_tile, buffer_super = [], []
-        buffer_cap = row_group_target
+        # ---------------------------------------------------------- helpers
+        def flush(buf_tile: list[str], buf_super: list[str]) -> None:
+            """Write current buffer as one row-group and clear it."""
+            if not buf_tile:
+                return
+            table = pa.table(
+                {
+                    "tile_id":  pa.array(buf_tile,  pa.string()),
+                    "super_id": pa.array(buf_super, pa.string()),
+                },
+                schema=schema,
+            )
+            writer.write_table(table, row_group_size=row_group_target)
+            buf_tile.clear()
+            buf_super.clear()
 
-        def _flush():
-            nonlocal buffer_tile, buffer_super
-            if buffer_tile:
-                table = pa.table(
-                    {"tile_id": pa.array(buffer_tile), "super_id": pa.array(buffer_super)}
-                )
-                writer.write_table(table, row_group_size=row_group_target)
-                buffer_tile, buffer_super = [], []
-
-        for level in self.levels:
-            for zone in zones:
-                x_idx, y_idx = self._iter_valid_xy(level, zone)
+        # ------------------------------------------------------- streaming pass
+        buf_tile, buf_super = [], []
+        for lvl in active_lvls:
+            print("level: ", lvl)
+            for z in zones:
+                x_idx, y_idx = self._iter_valid_xy(lvl, z)
                 if x_idx.size == 0:
                     continue
 
-                tiles = [
-                    self._make_tile_id(level, zone, xi, yi)
+                buf_tile.extend(
+                    self._make_tile_id(lvl, z, xi, yi) for xi, yi in zip(x_idx, y_idx)
+                )
+                buf_super.extend(
+                    # top-level tiles may return None → accepted, kept as <null>
+                    (self._compute_super_id(lvl, z, xi, yi) or None)
                     for xi, yi in zip(x_idx, y_idx)
-                ]
-                supers = [
-                    self._compute_super_id(level, zone, xi, yi)
-                    for xi, yi in zip(x_idx, y_idx)
-                ]
+                )
 
-                buffer_tile.extend(tiles)
-                buffer_super.extend(supers)
+                while len(buf_tile) >= row_group_target:
+                    # split off exactly one row_group_target chunk
+                    flush(buf_tile[:row_group_target], buf_super[:row_group_target])
 
-                # Flush whenever the buffer reaches the cap to respect row_group_target
-                while len(buffer_tile) >= buffer_cap:
-                    slice_end = buffer_cap
-                    table = pa.table(
-                        {
-                            "tile_id": pa.array(buffer_tile[:slice_end]),
-                            "super_id": pa.array(buffer_super[:slice_end]),
-                        }
-                    )
-                    writer.write_table(table, row_group_size=row_group_target)
-                    buffer_tile = buffer_tile[slice_end:]
-                    buffer_super = buffer_super[slice_end:]
-
-        _flush()  # write any remainder
+        flush(buf_tile, buf_super)  # remainder
         writer.close()
-        print(f"[OK] grid index written → {output_path}  "
-            f"({total_rows:,} rows, row_group {row_group_target})")
-
+        print(
+            f"[OK] grid index written → {output_path} "
+            f"({total_rows:,} rows, row_group ≈ {row_group_target})"
+        )
 
 
     def check_satellite_resolution_compatibility(self, grid_sizes: List[int], satellite_resolutions: List[int]) -> pd.DataFrame:

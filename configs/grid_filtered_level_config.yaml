@@ -27,4 +27,4 @@ generate: false                              # Flag to trigger actual generation
 
 # Optional advanced
 # chunked_levels: [300]                       # For large levels, save in multiple chunks
-partition_count: 12
+partition_count: 16
