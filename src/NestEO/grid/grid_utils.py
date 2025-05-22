@@ -12,8 +12,11 @@ All functions rely only on Python’s standard library.
 
 from typing import Dict, List, Union
 import re
+import pandas as pd
+import geopandas as gpd
+from pyproj import CRS
 
-__all__ = ["parse_tile_id", "make_tile_id", "get_tile_lineage"]
+__all__ = ["parse_tile_id", "make_tile_id", "get_tile_lineage", "expand_tile_ids"]
 
 # ───────────────────────── helpers ────────────────────────── #
 
@@ -154,6 +157,102 @@ def get_tile_lineage(
         result[tid] = tier_map
 
     return result
+
+
+from typing import Union
+import pandas as pd
+import geopandas as gpd
+import re
+
+def expand_tile_ids(
+    df: Union[pd.DataFrame, gpd.GeoDataFrame],
+    replace_existing: bool = True
+) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
+    """
+    Expands the 'tile_id' column into:
+    ['level', 'zone', 'epsg', 'x_idx', 'y_idx', 'buffer', 'overlap'].
+
+    Works for:
+      • UTM zones 01-60 N / 01-60 S
+      • Polar zones NP / SP
+    """
+    if "tile_id" not in df.columns:
+        raise ValueError("'tile_id' column is required in the DataFrame.")
+
+    def parse_tile(tile_id: str):
+        # --- 1) try POLAR pattern first (NP / SP) --------------------------
+        match = re.match(
+            r"G(?P<level>\d+)m_(?P<zone>[NS]P)_X(?P<x>\d+)_Y(?P<y>-?\d+)"
+            r"(?:_(?P<suffixes>.*))?$",
+            tile_id,
+        )
+
+        # --- 2) fall back to original UTM pattern -------------------------
+        if not match:
+            match = re.match(
+                r"G(?P<level>\d+)m_(?P<zone>\d{1,2}[NS])_X(?P<x>\d+)_Y(?P<y>-?\d+)"
+                r"(?:_(?P<suffixes>.*))?$",
+                tile_id,
+            )
+
+        # if still no match, return nulls
+        if not match:
+            return {
+                "level": None,
+                "zone": None,
+                "epsg": None,
+                "x_idx": None,
+                "y_idx": None,
+                "buffer": None,
+                "overlap": None,
+            }
+
+        parts = match.groupdict()
+        level = int(parts["level"])
+        zone = parts["zone"]
+        x_idx = int(parts["x"])
+        y_idx = int(parts["y"])
+        buffer = 0
+        overlap = 0
+
+        # suffix handling (bufNN, ovrlpNN)
+        suffixes = parts.get("suffixes")
+        if suffixes:
+            for part in suffixes.split("_"):
+                if part.startswith("buf"):
+                    buffer = int(part.replace("buf", ""))
+                elif part.startswith("ovrlp"):
+                    overlap = int(part.replace("ovrlp", ""))
+
+        # EPSG resolution
+        if zone in ("NP", "SP"):
+            epsg = 3413 if zone == "NP" else 3031
+        else:
+            try:
+                zone_number = int(zone[:-1])
+                hemisphere = zone[-1]
+                epsg = 32600 + zone_number if hemisphere == "N" else 32700 + zone_number
+            except ValueError:
+                epsg = None
+
+        return {
+            "level": level,
+            "zone": zone,
+            "epsg": f"EPSG:{epsg}" if epsg else None,
+            "x_idx": x_idx,
+            "y_idx": y_idx,
+            "buffer": buffer,
+            "overlap": overlap,
+        }
+
+    parsed = df["tile_id"].apply(parse_tile).apply(pd.Series)
+
+    # keep existing columns unless overwrite requested
+    if not replace_existing:
+        parsed = parsed[[c for c in parsed.columns if c not in df.columns]]
+
+    return df.join(parsed)
+
 
 
 # # ─────────────── simple sanity check (optional) ────────────── #
