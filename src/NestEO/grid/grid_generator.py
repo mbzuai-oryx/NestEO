@@ -27,14 +27,16 @@ import json
 from datetime import datetime
 import geopandas as gpd
 import pyproj
+from typing import List, Union, Dict
+import math
 
 
 class NestEOGrid:
     def __init__(self,
                 levels: Optional[List[int]] = None,
-                default_levels: Optional[List[int]] = None,
-                buffer_ratio: Optional[int] = 0.0,
-                overlap_ratio: Optional[int] = 0.0,
+                default_levels: Optional[List[int]] = [300, 600, 1200, 2400, 12000, 120000],
+                buffer_ratio: Optional[float] = 0.0,
+                overlap_ratio: Optional[float] = 0.0,
                 utm_zones: Optional[List[str]] = None,
                 latlon_bounds: Optional[Tuple[float, float, float, float]] = None,
                 include_polar: bool = False,
@@ -166,10 +168,6 @@ class NestEOGrid:
                             print(f"[SKIP] {pole} level {level} already exists.")
                             self.generated_file_paths.append(path)
                             continue
-                    # if self.skip_existing and exists(path): #self._file_exists_for_tile(pole, level):  
-                    #     print(f"[SKIP] {zone} level {level} already exists.")
-                    #     # self.generated_file_paths.append(path)
-                    #     continue
 
                     gdf = self._generate_polar_grid(level, pole)
                     if not gdf.empty:
@@ -268,7 +266,7 @@ class NestEOGrid:
         y_start = origin_y + grid_size * int((ymin - origin_y) // grid_size)
 
         # Like here have some overlap ratio logic
-        if self.overlap_ratio > 0:
+        if self.overlap_ratio is not None and self.overlap_ratio > 0:
             # if self.overlap_ratio != 1/6:
             if round(self.overlap_ratio, 6) != round(1/6, 6):
                 print(f"\n\nOverlap ratio: {self.overlap_ratio} ideally be 1/6 for grid generations of default levels. Nesting may not work.")
@@ -514,32 +512,6 @@ class NestEOGrid:
         # print(f"Kept {len(tuples)} from reference level based on null landcover out of {len(df)}")
         self._zero_cache[zone] = tuples
         return tuples
-
-    # ─────────────────────────────────────────────────────────────────────────────
-
-    # def ancestor_id_series(self, tile_id_series: pd.Series) -> pd.Series:
-    #     """
-    #     Vectorised: return the tile_id of the ancestor at *ref_level*
-    #     for every tile_id in the series.  Works for any pair of levels
-    #     present in DEFAULT_LEVELS.
-    #     """
-    #     import re
-    #     PAT = re.compile(r"G(?P<lvl>\d+)m_(?P<zone>[0-9A-Z]+)_X(?P<x>\d+)_Y(?P<y>\d+)")
-    #     # parse tile_id in a vector‑friendly way
-    #     df = tile_id_series.str.extract(PAT).astype({"lvl": int, "x": int, "y": int})
-    #     lvl = df["lvl"].iloc[0]          # all rows share the same level inside one parquet
-    #     if self.ref_level % lvl != 0:
-    #         raise ValueError(f"{self.ref_level=} is not an integer multiple of child level {lvl}")
-
-    #     k = self.ref_level // lvl             # scale factor
-    #     x_anc = (df["x"] // k).astype(int)
-    #     y_anc = (df["y"] // k).astype(int)
-
-    #     return (
-    #         "G" + str(self.ref_level) + "m_" +
-    #         df["zone"] + "_X" + x_anc.astype(str).str.zfill(6) +
-    #         "_Y" + y_anc.astype(str).str.zfill(6)
-    #     )
     
     def _prefilter_grid_centroids(self, cols, rows, grid_size, crs,
                                   lon_bounds: Tuple[float, float]):
@@ -634,7 +606,6 @@ class NestEOGrid:
         del valid_x, valid_y, xi_idx, yi_idx, geoms
         gc.collect()
         return gdf
-
 
     def _make_tile_id(self, level: int, zone: str, x: int, y: int) -> str:
         return f"G{level}m_{zone}_X{x:06d}_Y{y:06d}"
@@ -883,7 +854,190 @@ class NestEOGrid:
     def get_ancestor_tile_id(self, child_level, parent_level, zone, x_idx, y_idx):
         factor = child_level // parent_level
         return self._make_tile_id(parent_level, zone, x_idx // factor, y_idx // factor) + self.suffix
-    
+
+    @staticmethod
+    def expand_tile_ids(
+        df: Union[pd.DataFrame, gpd.GeoDataFrame],
+        replace_existing: bool = False
+    ) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
+        """
+        Expands the 'tile_id' column in a DataFrame/GeoDataFrame to structured fields:
+        ['level', 'zone', 'epsg', 'x_idx', 'y_idx', 'buffer', 'overlap']
+
+        Args:
+            df (pd.DataFrame or gpd.GeoDataFrame): Input with a 'tile_id' column.
+            replace_existing (bool): Whether to overwrite existing columns.
+
+        Returns:
+            DataFrame with additional columns.
+        """
+        if 'tile_id' not in df.columns:
+            raise ValueError("'tile_id' column is required in the DataFrame.")
+
+        def parse_tile(tile_id: str):
+            # match = re.match(
+            #     r"G(?P<level>\d+)m_(?P<zone>[A-Z0-9]+)_X(?P<x>\d+)_Y(?P<y>\d+)"
+            #     r"(?:_(?P<suffixes>.*))?$", tile_id
+            # )
+            match = re.match(
+                r"G(?P<level>\d+)m_(?P<zone>\d{1,2}[NS])_X(?P<x>\d+)_Y(?P<y>-?\d+)"
+                r"(?:_(?P<suffixes>.*))?$", tile_id
+            )
+
+            if not match:
+                return {
+                    "level": None, "zone": None, "epsg": None,
+                    "x_idx": None, "y_idx": None, "buffer": None, "overlap": None
+                }
+
+            parts = match.groupdict()
+            level = int(parts["level"])
+            zone = parts["zone"]
+            x_idx = int(parts["x"])
+            y_idx = int(parts["y"])
+            buffer = 0
+            overlap = 0
+
+            suffixes = parts.get("suffixes")
+            if suffixes:
+                for part in suffixes.split("_"):
+                    if part.startswith("buf"):
+                        buffer = int(part.replace("buf", ""))
+                    elif part.startswith("ovrlp"):
+                        overlap = int(part.replace("ovrlp", ""))
+
+            # EPSG resolution
+            if zone in ["NP", "SP"]:
+                epsg = 3413 if zone == "NP" else 3031
+            else:
+                try:
+                    zone_number = int(zone[:-1])
+                    hemisphere = zone[-1]
+                    if hemisphere == "N":
+                        epsg = 32600 + zone_number
+                    elif hemisphere == "S":
+                        epsg = 32700 + zone_number
+                    else:
+                        epsg = None
+                except:
+                    epsg = None
+
+            return {
+                "level": level,
+                "zone": zone,
+                "epsg": f"EPSG:{epsg}" if epsg else None,
+                "x_idx": x_idx,
+                "y_idx": y_idx,
+                "buffer": buffer,
+                "overlap": overlap
+            }
+
+        # Apply parsing
+        parsed_df = df['tile_id'].apply(parse_tile).apply(pd.Series)
+
+        # Determine which columns to merge based on existing presence and flag
+        new_cols = parsed_df.columns
+        if not replace_existing:
+            new_cols = [col for col in new_cols if col not in df.columns]
+
+        # Merge and return
+        return df.drop(columns=new_cols, errors='ignore').join(parsed_df[new_cols])
+
+    # @staticmethod
+    def _build_suffix(self, buffer: int, overlap: int) -> str:
+        """Recreate the original buffer / overlap suffix from the parsed metadata."""
+        parts = []
+        if buffer:
+            parts.append(f"buf{buffer}")
+        if overlap:
+            parts.append(f"ovrlp{overlap}")
+        return "_" + "_".join(parts) if parts else ""
+
+
+    def _get_tile_lineage(self,  # type: ignore[override]
+                        tile_ids: Union[str, List[str]],
+                        levels:   List[int],
+                        *,
+                        keep_missing: bool = False) -> Dict[str, Dict[int, List[str]]]:
+        """Return the full ancestry / descendants of *tile_ids* for the requested *levels*.
+
+        Parameters
+        ----------
+        tile_ids : str | list[str]
+            A single ``tile_id`` or a list of them.
+        levels : list[int]
+            Grid resolutions (in metres) you want in the output.  They can be
+            coarser *or* finer than the native level of the tile.
+        keep_missing : bool, default *False*
+            If *True*, requested levels that are not a clean multiple / divisor of
+            the tile's level are still listed in the output with an **empty list**.
+
+        Returns
+        -------
+        dict
+            ``{input_tile_id: {level: [tile_ids]}}``  — the inner dictionary keeps
+            the original order of *levels* so that you can iterate deterministically.
+        """
+        # normalise inputs ----------------------------------------------------------
+        if isinstance(tile_ids, str):
+            tile_ids = [tile_ids]
+        # deduplicate *levels* while preserving order
+        levels = list(dict.fromkeys(levels))
+
+        out: Dict[str, Dict[int, List[str]]] = {}
+
+        for tid in tile_ids:
+            meta = self.parse_tile_id(tid)
+            if not meta:
+                continue  # skip silently – could also raise
+
+            cur_lvl = meta["level"]
+            zone    = meta["zone"]
+            x_idx   = meta["x_idx"]
+            y_idx   = meta["y_idx"]
+            suffix  = self._build_suffix(meta["buffer"], meta["overlap"])
+
+            lineage: Dict[int, List[str]] = {}
+
+            for lvl in levels:
+                # ------------------------- native level ---------------------------
+                if lvl == cur_lvl:
+                    lineage[lvl] = [tid]
+                    continue
+
+                # ------------------------- coarser ancestor -----------------------
+                if lvl > cur_lvl:
+                    if lvl % cur_lvl != 0:
+                        if keep_missing:
+                            lineage.setdefault(lvl, [])
+                        continue  # not divisible – no ancestor
+                    factor = lvl // cur_lvl
+                    anc_x  = x_idx // factor
+                    anc_y  = y_idx // factor
+                    anc_id = self._make_tile_id(lvl, zone, anc_x, anc_y) + suffix
+                    lineage[lvl] = [anc_id]
+                    continue
+
+                # ------------------------- finer descendants ----------------------
+                if cur_lvl % lvl != 0:
+                    if keep_missing:
+                        lineage.setdefault(lvl, [])
+                    continue  # again – not divisible
+                factor = cur_lvl // lvl
+                base_x = x_idx * factor
+                base_y = y_idx * factor
+                sub_tiles = [
+                    self._make_tile_id(lvl, zone, base_x + dx, base_y + dy) + suffix
+                    for dx in range(factor)
+                    for dy in range(factor)
+                ]
+                lineage[lvl] = sub_tiles
+
+            out[tid] = lineage
+
+        return out
+
+
     def _get_tile_by_latlon_polar(self, lat: float, lon: float, pole: str):
         """
         Given a lat/lon and pole identifier ('NP' or 'SP'), return the intersecting polar tile.
@@ -1219,16 +1373,10 @@ class NestEOGrid:
                 gdf = gdf.to_crs("EPSG:4326")
                 gdf_all.append(gdf)
 
-            return pd.concat(gdf_all, ignore_index=True)
+            return gpd.GeoDataFrame(pd.concat(gdf_all, ignore_index=True))
 
     def _compute_super_id(self, level, zone, x_idx, y_idx) -> Optional[str]:
-        suffix_parts = []
-        if self.buffer_ratio:
-            suffix_parts.append(f"buf{int(self.buffer_ratio * level)}")
-        if self.overlap_ratio:
-            suffix_parts.append(f"ovrlp{int(self.overlap_ratio * 100)}")
-        suffix = "_" + "_".join(suffix_parts) if suffix_parts else ""
-        self.suffix = suffix
+        suffix = self._build_suffix(meta["buffer"], meta["overlap"])
         try:
             i = self.default_levels.index(level)
             if i < len(self.default_levels) - 1:
@@ -1237,7 +1385,7 @@ class NestEOGrid:
                 if not factor.is_integer():
                     return None
                 factor = int(factor)
-                return self._make_tile_id(super_level, zone, x_idx // factor, y_idx // factor) + self.suffix
+                return self._make_tile_id(super_level, zone, x_idx // factor, y_idx // factor) + suffix
             else:
                 return None
         except (ValueError, IndexError):
