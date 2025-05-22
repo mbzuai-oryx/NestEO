@@ -1,0 +1,12 @@
+# Paths (use absolute or ~/…; environment vars allowed)
+grid_path: D:/NestEO_test_outputs/Selected_1200m_grid.parquet
+raster_dir: F:/ESA_LC_Raw
+raster_outline_shp: F:/ESA_LC_Raw/raster_outlines.shp
+output_root: D:/NestEO_test_outputs/esa_lc_tiles_1200m_
+
+# Processing parameters
+resolution_m: 10        # ESA WC native resolution
+partition_size: 5000    # polygons per spatial partition
+n_workers: 10           # Dask workers
+mem_limit: 2.5GB        # per-worker RAM cap
+omp_threads: 1          # rasterio / GDAL threads
