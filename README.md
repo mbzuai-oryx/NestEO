@@ -1,5 +1,3 @@
-<img src="docs/images/nesteo_banner.png" alt="NestEO Logo" width="400"/>
-
 
 # NestEO
 NestEO: Nested and Aligned Earth Observation Framework with Multimodal Dataset  
@@ -7,7 +5,7 @@ NestEO: Nested and Aligned Earth Observation Framework with Multimodal Dataset
 Hierarchical, Extensible , Nested, Aligned, Representative, Contextual, Multimodal, Earth Observation (Framework & Dataset)
 
 
-<img src="docs/images/nesteo_banner.png" alt="NestEO Logo" width="400"/>
+<img src="docs/images/nesteo_banner.png" alt="NestEO Logo" width="200"/>
 
 # NestEO
 **Nested and Aligned Earth Observation Framework with Multimodal Dataset**
