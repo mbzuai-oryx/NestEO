@@ -1,21 +1,90 @@
 [project]
 name = "NestEO"
-version = "0.0.1"
-description = "Nested and Aligned Earth Observation Framework with Multimodal Dataset"
+version = "0.1.0"
+description = "Nested and Aligned Earth Observation Framework — hierarchical global grid, land-cover enrichment, and curated dataset pipeline"
 readme = "README.md"
-authors = [{name = "---"}]
-requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+]
+requires-python = ">=3.11"
+
+# Core dependencies — lightweight, always installed
 dependencies = [
     "pandas>=2.0",
     "pyarrow>=14.0",
+    "numpy>=1.24",
+    "pyyaml>=6.0",
+    "tqdm>=4.60",
 ]
 
 [project.optional-dependencies]
-geo = ["geopandas", "shapely", "pyproj", "rasterio"]
-hf  = ["huggingface-hub", "dask", "dask[dataframe]"]
-others = ["gdown", "scikit-learn", "tqdm", "yaml"]
+# Geospatial processing (GDAL must be installed separately via system package manager or conda)
+geo = [
+    "geopandas>=0.14",
+    "shapely>=2.0",
+    "pyproj>=3.6",
+    "rasterio>=1.3",
+]
+# Distributed computation for enrichment
+compute = [
+    "dask>=2024.1",
+    "dask[distributed]>=2024.1",
+    "scikit-learn>=1.3",
+]
+# HuggingFace Hub integration
+hf = [
+    "huggingface-hub>=0.22",
+    "dask>=2024.1",
+    "dask[dataframe]>=2024.1",
+]
+# Visualisation
+viz = [
+    "folium>=0.15",
+    "matplotlib>=3.7",
+]
+# Auxiliary data download helpers
+aux = [
+    "gdown>=5.0",
+]
+# Full install (all optional extras)
+all = [
+    "NestEO[geo,compute,hf,viz,aux]",
+]
+# Development + testing
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+    "mypy>=1.9",
+    "pre-commit>=3.7",
+]
+
+[project.scripts]
+nesteo-gen-grid     = "NestEO.scripts.cli:gen_grid"
+nesteo-compute-lc   = "NestEO.scripts.cli:compute_lc"
+nesteo-sample       = "NestEO.scripts.cli:sample_tiles"
+nesteo-push-hf      = "NestEO.scripts.cli:push_hf"
+
+[project.urls]
+Homepage   = "https://github.com/mbzuai-oryx/NestEO"
+Repository = "https://github.com/mbzuai-oryx/NestEO"
 
 [build-system]
-requires = ["hatchling"]
+requires      = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/NestEO"]
+
+[tool.pytest.ini_options]
+testpaths    = ["tests"]
+addopts      = "-v --tb=short"
+filterwarnings = ["ignore::UserWarning"]
+
+[tool.ruff]
+line-length = 100
+src         = ["src"]
+
+[tool.ruff.lint]
+select  = ["E", "F", "W", "I"]
+ignore  = ["E501"]

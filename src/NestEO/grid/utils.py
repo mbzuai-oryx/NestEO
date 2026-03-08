@@ -1,13 +1,14 @@
 """
-grid_utils.py – standalone lineage utilities for NestEO tile_ids
+utils.py – standalone lineage utilities for NestEO tile_ids
 ────────────────────────────────────────────────────────────────
 Public API
 ----------
 parse_tile_id(tile_id: str) -> dict
 make_tile_id(level, zone, x_idx, y_idx, *, buffer=0, overlap=0) -> str
 get_tile_lineage(tile_ids, levels, *, keep_missing=False) -> dict
+expand_tile_ids(df, replace_existing=True) -> DataFrame
 
-All functions rely only on Python’s standard library.
+All functions rely only on Python's standard library plus pandas/geopandas.
 """
 
 from typing import Dict, List, Union
@@ -101,16 +102,16 @@ def get_tile_lineage(
     Output shape:
         {input_tile_id: {level: [tile_ids]}}
 
-    •  If *level* equals the native level → list with the original id.  
-    •  If coarser (larger number) and divisible → single ancestor id.  
-    •  If finer (smaller number) and divisible → complete set of children ids.  
+    •  If *level* equals the native level → list with the original id.
+    •  If coarser (larger number) and divisible → single ancestor id.
+    •  If finer (smaller number) and divisible → complete set of children ids.
     •  If not divisible and *keep_missing* is True → empty list.  Otherwise the
        level key is omitted.
     """
     if isinstance(tile_ids, str):
         tile_ids = [tile_ids]
 
-    # de-duplicate while preserving caller’s order
+    # de-duplicate while preserving caller's order
     levels = list(dict.fromkeys(levels))
     result: Dict[str, Dict[int, List[str]]] = {}
 
@@ -159,10 +160,7 @@ def get_tile_lineage(
     return result
 
 
-from typing import Union
-import pandas as pd
-import geopandas as gpd
-import re
+# ────────────────────── expand_tile_ids ───────────────────── #
 
 def expand_tile_ids(
     df: Union[pd.DataFrame, gpd.GeoDataFrame],
@@ -252,13 +250,3 @@ def expand_tile_ids(
         parsed = parsed[[c for c in parsed.columns if c not in df.columns]]
 
     return df.join(parsed)
-
-
-
-# # ─────────────── simple sanity check (optional) ────────────── #
-# if __name__ == "__main__":        # noqa: D401  • run `python grid_utils.py`
-#     example_tile = ["G2400m_19S_X000162_Y-01131", "G2400m_19N_X000162_Y01131"]
-#     req_levels   = [12000, 2400, 1200]
-#     from pprint import pprint
-
-#     pprint(get_tile_lineage(example_tile, req_levels))

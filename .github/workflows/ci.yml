@@ -1,12 +1,44 @@
 name: CI
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [main, overhaul_repo]
+  pull_request:
+    branches: [main]
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - run: pip install -e .[geo,hf] pytest
-      - run: pytest -q
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system GDAL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libgdal-dev gdal-bin
+
+      - name: Install package with dev + geo extras
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev,geo]"
+
+      - name: Lint with ruff
+        run: ruff check src/ tests/
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: false
