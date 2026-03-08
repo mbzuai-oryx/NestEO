@@ -84,7 +84,15 @@ filterwarnings = ["ignore::UserWarning"]
 [tool.ruff]
 line-length = 100
 src         = ["src"]
+# Legacy modules kept for backward compatibility — not linted
+exclude = [
+    "src/NestEO/annotations/",
+    "src/NestEO/aux_datasets/",
+    "src/NestEO/eo_datasets/",
+    "src/NestEO/extra/",
+    "scripts/",
+]
 
 [tool.ruff.lint]
 select  = ["E", "F", "W", "I"]
-ignore  = ["E501"]
+ignore  = ["E501", "E402"]

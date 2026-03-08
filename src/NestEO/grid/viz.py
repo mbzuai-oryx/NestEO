@@ -4,9 +4,10 @@ viz.py – visualization helpers for NestEO grid tiles.
 Pure functions, no class needed.
 """
 
+from typing import Union
+
 import geopandas as gpd
 import pandas as pd
-from typing import Optional, Union
 
 
 def visualize_grid(

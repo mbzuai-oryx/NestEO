@@ -1,7 +1,5 @@
 """Unit tests for GridFilter."""
 
-import numpy as np
-import pytest
 
 
 class TestGridFilter:

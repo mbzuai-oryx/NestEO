@@ -1,7 +1,6 @@
 """Unit tests for NestEO grid utility functions."""
 
-import pytest
-from NestEO.grid.utils import make_tile_id, parse_tile_id, get_tile_lineage
+from NestEO.grid.utils import get_tile_lineage, make_tile_id, parse_tile_id
 
 
 class TestMakeTileId:

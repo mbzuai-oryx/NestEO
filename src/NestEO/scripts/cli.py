@@ -8,8 +8,6 @@ appropriate package modules. All heavy logic lives in the modules.
 from __future__ import annotations
 
 import argparse
-import sys
-from pathlib import Path
 
 
 def gen_grid() -> None:
@@ -46,9 +44,10 @@ def compute_lc() -> None:
 
 def sample_tiles() -> None:
     """nesteo-sample -- Run 4-phase tile sampling."""
+    import geopandas as gpd
+
     from NestEO.sampling.strategies import NestEOSampler
     from NestEO.utils.config import load_config
-    import geopandas as gpd
 
     p = argparse.ArgumentParser(description="Run NestEO 4-phase sampling.")
     p.add_argument("-c", "--config", required=True, help="Path to sampling config YAML.")
@@ -73,7 +72,6 @@ def sample_tiles() -> None:
 def push_hf() -> None:
     """nesteo-push-hf -- Push local NestEO data to HuggingFace Hub."""
     from NestEO.core.structure import NestEOStructure
-    from NestEO.utils.config import load_config
 
     p = argparse.ArgumentParser(description="Push NestEO structure to HuggingFace.")
     p.add_argument("--repo-id", required=True, help="HuggingFace repo ID (e.g. nesteo-datasets/nesteo-prototype).")

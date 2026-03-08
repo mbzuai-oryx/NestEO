@@ -3,10 +3,10 @@
 from pathlib import Path
 from typing import Optional, Union
 
-from .structure import NestEOStructure
-from ..grid.generator import NestEOGrid
 from ..enrichment.esa_wc import ESAWorldCoverExtractor
+from ..grid.generator import NestEOGrid
 from ..sampling.strategies import NestEOSampler
+from .structure import NestEOStructure
 
 
 class NestEO:

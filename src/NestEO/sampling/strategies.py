@@ -19,7 +19,7 @@ selected_ids = sampler.run(grid_gdf)   # returns list of tile_ids
 from __future__ import annotations
 
 import warnings
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 import pandas as pd

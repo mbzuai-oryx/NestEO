@@ -56,7 +56,6 @@ def _calc_props(arr: np.ndarray) -> dict:
 
 def _kmeans_spatial_partition(gdf, max_partition_size: int):
     """Spatially cluster polygons into partitions of roughly max_partition_size."""
-    import geopandas as gpd
     from sklearn.cluster import KMeans
 
     n_cls = max(1, len(gdf) // max_partition_size)
@@ -252,7 +251,6 @@ def _process_partition(part_gdf, raster_dir: Path, outline_gdf, dst_crs, res_m: 
 
     @delayed
     def _inner(part_gdf, raster_dir, outline_gdf, dst_crs, res_m):
-        import geopandas as gpd
         import rasterio
         from osgeo import gdal
         from rasterio import warp

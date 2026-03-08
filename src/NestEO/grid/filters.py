@@ -5,13 +5,14 @@ GridFilter is purely functional: it takes data in and returns filtered data.
 No file I/O beyond reading reference parquet files.
 """
 
-import numpy as np
-import geopandas as gpd
-import pandas as pd
-from pyproj import CRS, Transformer
-from shapely.geometry import box
-from typing import Tuple
 from os.path import join
+from typing import Tuple
+
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+from pyproj import Transformer
+from shapely.geometry import box
 
 
 class GridFilter:

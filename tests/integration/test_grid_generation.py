@@ -6,10 +6,8 @@ This test does NOT require raster data or HuggingFace -- it only tests the
 geometry generation + tile ID logic.
 """
 
-import pytest
-import pandas as pd
 
-from NestEO.grid.utils import parse_tile_id, get_tile_lineage, make_tile_id
+from NestEO.grid.utils import get_tile_lineage, make_tile_id, parse_tile_id
 
 
 class TestTileHierarchy:

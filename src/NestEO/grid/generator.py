@@ -12,23 +12,22 @@ Maintains:
 Delegates landcover filtering to GridFilter and all I/O to GridIO.
 """
 
-import os
 import gc
 import hashlib
+import os
+from os.path import basename, dirname, exists, join
+from time import time
+from typing import Dict, List, Optional, Tuple
+
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-import geopandas as gpd
-from os.path import join, dirname, basename, exists
 from pyproj import CRS, Transformer
 from shapely.geometry import box
-from time import time
-from pathlib import Path
-from datetime import datetime
-from typing import List, Tuple, Optional, Union, Dict
 
 from .filters import GridFilter
 from .io import GridIO
-from .utils import _fmt_idx, _build_suffix
+from .utils import _fmt_idx
 
 
 class NestEOGrid:
@@ -239,8 +238,9 @@ class NestEOGrid:
 
     def _generate_utm_grid(self, grid_size: int, zone: str) -> gpd.GeoDataFrame:
         import gc
-        from joblib import Parallel, delayed
+
         import psutil
+        from joblib import Parallel, delayed
 
         zone_num = int(zone[:-1])
         hemisphere = zone[-1].upper()
@@ -692,8 +692,6 @@ class NestEOGrid:
         bounds = (-4500000, -4500000, 4500000, 4500000)
 
         grid_size = min(self.levels)
-        cols = np.arange(bounds[0], bounds[2], grid_size)
-        rows = np.arange(bounds[1], bounds[3], grid_size)
 
         transformer = Transformer.from_crs("EPSG:4326", crs_polar, always_xy=True)
         x, y = transformer.transform(lon, lat)
@@ -758,7 +756,6 @@ class NestEOGrid:
             coarse_level = levels[i]
 
             fine = tile_dfs[fine_level]
-            coarse = tile_dfs[coarse_level]
 
             fine["coarse_x"] = fine["x_idx"] // (coarse_level // fine_level)
             fine["coarse_y"] = fine["y_idx"] // (coarse_level // fine_level)

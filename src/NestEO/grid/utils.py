@@ -11,11 +11,11 @@ expand_tile_ids(df, replace_existing=True) -> DataFrame
 All functions rely only on Python's standard library plus pandas/geopandas.
 """
 
-from typing import Dict, List, Union
 import re
-import pandas as pd
+from typing import Dict, List, Union
+
 import geopandas as gpd
-from pyproj import CRS
+import pandas as pd
 
 __all__ = ["parse_tile_id", "make_tile_id", "get_tile_lineage", "expand_tile_ids"]
 

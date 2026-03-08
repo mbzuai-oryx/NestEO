@@ -1,11 +1,13 @@
+import json
 import os
+from datetime import datetime
+from pathlib import Path
+
 import pandas as pd
 import pyarrow.parquet as pq
-from pathlib import Path
-from huggingface_hub import hf_hub_download, upload_file
-import json
-from datetime import datetime
 import yaml
+from huggingface_hub import hf_hub_download, upload_file
+
 
 class NestEOStructure():
     def __init__(self, root_folder=None, hf_repo_id=None, structure_file="structure.parquet"):
@@ -143,8 +145,7 @@ class NestEOStructure():
                 target.mkdir(parents=True, exist_ok=True)
             else:
                 target.parent.mkdir(parents=True, exist_ok=True)
-                with open(target, 'wb') as f:
-                    pass  # Empty file
+                open(target, 'wb').close()  # create empty file
 
     def upload_structure_to_hf(self):
         if not self.hf_repo_id or not self.root_folder:
