@@ -6,7 +6,8 @@ from pathlib import Path
 import pandas as pd
 import pyarrow.parquet as pq
 import yaml
-from huggingface_hub import hf_hub_download, upload_file
+
+# huggingface_hub is an optional dependency — imported lazily inside methods
 
 
 class NestEOStructure():
@@ -130,6 +131,7 @@ class NestEOStructure():
     def load_structure_from_hf(self):
         if not self.hf_repo_id:
             raise ValueError("hf_repo_id must be provided to fetch from Hugging Face.")
+        from huggingface_hub import hf_hub_download
         local_path = hf_hub_download(repo_id=self.hf_repo_id, filename=self.structure_file)
         self.structure_df = pd.read_parquet(local_path)
         return self.structure_df
@@ -153,6 +155,7 @@ class NestEOStructure():
         file_path = self.root_folder / self.structure_path / self.structure_file
         if not file_path.exists():
             raise FileNotFoundError(f"{self.structure_file} not found in {self.root_folder}")
+        from huggingface_hub import upload_file
         upload_file(
             repo_id=self.hf_repo_id,
             path_or_fileobj=file_path,
